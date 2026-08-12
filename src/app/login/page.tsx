@@ -50,7 +50,7 @@ export default function LoginPage() {
           </div>
           <div>
             <CardTitle className="text-2xl font-bold text-slate-900">法务工作台</CardTitle>
-            <CardDescription className="text-base mt-1">WorkBuddy - 法务团队一站式工作平台</CardDescription>
+            <CardDescription className="text-base mt-1">法务团队一站式工作平台</CardDescription>
           </div>
         </CardHeader>
         <CardContent>

@@ -11,7 +11,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "法务工作台 - WorkBuddy",
+  title: "法务工作台",
   description: "法务团队一站式工作平台",
 };
 

@@ -39,7 +39,7 @@ export function Sidebar() {
         </div>
         <div>
           <h1 className="text-sm font-bold text-slate-900 leading-tight">法务工作台</h1>
-          <p className="text-[10px] text-slate-400 leading-tight">WorkBuddy</p>
+          <p className="text-[10px] text-slate-400 leading-tight">法务工作台</p>
         </div>
       </div>
 

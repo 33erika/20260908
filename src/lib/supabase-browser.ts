@@ -74,6 +74,12 @@ function getSupabaseBrowserClient(): SupabaseClient {
 }
 
 async function getSupabaseBrowserClientWithRetry(maxRetries = 5, retryInterval = 1000): Promise<SupabaseClient> {
+  // First wait for config to be available
+  const ready = await waitForConfig();
+  if (!ready) {
+    throw new Error('Supabase config not found after waiting');
+  }
+
   for (let i = 0; i < maxRetries; i++) {
     try {
       return getSupabaseBrowserClient();

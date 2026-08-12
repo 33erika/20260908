@@ -1,0 +1,44 @@
+import { verifyAuth } from '@/lib/api-auth';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function GET(request: NextRequest) {
+  const auth = await verifyAuth(request);
+  if (!auth) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  try {
+    // Use service role client for DB operations
+    const dbClient = getSupabaseClient();
+    const { data: profile } = await dbClient
+      .from('profiles')
+      .select('*')
+      .eq('id', auth.userId)
+      .maybeSingle();
+
+    if (!profile) {
+      const { data: newProfile, error: createError } = await dbClient
+        .from('profiles')
+        .insert({
+          id: auth.userId,
+          email: auth.email,
+          full_name: auth.fullName,
+          role: 'member',
+        })
+        .select()
+        .single();
+
+      if (createError) {
+        console.error('Profile create error:', JSON.stringify(createError));
+        return NextResponse.json({ error: `Failed to create profile: ${createError.message}` }, { status: 500 });
+      }
+      return NextResponse.json({ user: { id: auth.userId, email: auth.email }, profile: newProfile });
+    }
+
+    return NextResponse.json({ user: { id: auth.userId, email: auth.email }, profile });
+  } catch (err) {
+    console.error('Auth/me error:', err);
+    return NextResponse.json({ error: 'Auth failed' }, { status: 401 });
+  }
+}

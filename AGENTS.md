@@ -1,65 +1,92 @@
-# 项目上下文
+# AGENTS.md - 法务工作台 (WorkBuddy)
 
-### 版本技术栈
+## 项目概览
+
+法务工作台是面向法务团队内部的协作工具，提供法务导航、待办任务管理、法务事项跟踪、数据汇总等功能。
+
+## 技术栈
 
 - **Framework**: Next.js 16 (App Router)
 - **Core**: React 19
 - **Language**: TypeScript 5
 - **UI 组件**: shadcn/ui (基于 Radix UI)
 - **Styling**: Tailwind CSS 4
+- **Database**: Supabase (PostgreSQL)
+- **Auth**: Supabase Auth (邮箱登录)
 
 ## 目录结构
 
 ```
-├── public/                 # 静态资源
-├── scripts/                # 构建与启动脚本
-│   ├── build.sh            # 构建脚本
-│   ├── dev.sh              # 开发环境启动脚本
-│   ├── prepare.sh          # 预处理脚本
-│   └── start.sh            # 生产环境启动脚本
 ├── src/
-│   ├── app/                # 页面路由与布局
-│   ├── components/ui/      # Shadcn UI 组件库
-│   ├── hooks/              # 自定义 Hooks
-│   ├── lib/                # 工具库
-│   │   └── utils.ts        # 通用工具函数 (cn)
-│   └── server.ts           # 自定义服务端入口
-├── next.config.ts          # Next.js 配置
-├── package.json            # 项目依赖管理
-└── tsconfig.json           # TypeScript 配置
+│   ├── app/                    # 页面路由
+│   │   ├── api/                # API 路由
+│   │   │   ├── auth/me/        # 当前用户信息
+│   │   │   ├── nav/            # 导航管理
+│   │   │   ├── tasks/          # 任务 CRUD
+│   │   │   ├── cases/          # 法务事项 CRUD
+│   │   │   ├── case-types/     # 事项类型配置
+│   │   │   ├── dashboard/      # 数据汇总
+│   │   │   ├── search/         # 全局搜索
+│   │   │   ├── recycle/        # 回收站
+│   │   │   ├── operation-logs/ # 操作记录
+│   │   │   ├── documents/      # 文档关联
+│   │   │   └── profiles/       # 用户管理
+│   │   ├── login/              # 登录页
+│   │   ├── links/              # 法务导航页
+│   │   ├── todos/              # 待办与提醒页
+│   │   ├── cases/              # 法务事项页
+│   │   ├── dashboard/          # 数据汇总页
+│   │   ├── search/             # 搜索页
+│   │   ├── recycle/            # 回收站页
+│   │   └── settings/           # 系统设置页
+│   ├── components/             # 共享组件
+│   │   ├── ui/                 # shadcn/ui 组件
+│   │   ├── app-shell.tsx       # 应用外壳
+│   │   └── sidebar.tsx         # 侧边栏导航
+│   ├── lib/                    # 工具库
+│   │   ├── utils.ts            # 通用工具
+│   │   ├── auth-context.tsx    # 认证上下文
+│   │   ├── api-auth.ts         # API 认证辅助
+│   │   └── supabase-*.ts       # Supabase 客户端
+│   ├── hooks/                  # 自定义 Hooks
+│   │   └── use-api.ts          # API 请求 Hook
+│   ├── storage/database/       # 数据库层
+│   │   ├── shared/schema.ts    # Drizzle Schema
+│   │   └── supabase-client.ts  # Supabase 客户端
+│   └── middleware.ts           # 认证中间件
 ```
 
-- 项目文件（如 app 目录、pages 目录、components 等）默认初始化到 `src/` 目录下。
+## 核心数据模型
 
-## 包管理规范
+- **profiles**: 用户档案
+- **nav_categories / nav_links**: 法务导航
+- **case_types / case_type_fields / case_stages**: 事项类型配置（含自定义字段和阶段）
+- **cases**: 法务事项
+- **case_field_values**: 自定义字段值
+- **tasks**: 任务（每日提醒/定期任务/临时任务）
+- **case_documents**: 文档关联（钉钉文档链接）
+- **operation_logs**: 操作记录
+- **recycle_bin**: 回收站
 
-**仅允许使用 pnpm** 作为包管理器，**严禁使用 npm 或 yarn**。
-**常用命令**：
-- 安装依赖：`pnpm add <package>`
-- 安装开发依赖：`pnpm add -D <package>`
-- 安装所有依赖：`pnpm install`
-- 移除依赖：`pnpm remove <package>`
+## 开发命令
 
-## 开发规范
+```bash
+pnpm install        # 安装依赖
+pnpm dev            # 启动开发服务
+pnpm build          # 构建生产版本
+pnpm start          # 启动生产服务
+```
 
-### 编码规范
+## 认证说明
 
-- 默认按 TypeScript `strict` 心智写代码；优先复用当前作用域已声明的变量、函数、类型和导入，禁止引用未声明标识符或拼错变量名。
-- 禁止隐式 `any` 和 `as any`；函数参数、返回值、解构项、事件对象、`catch` 错误在使用前应有明确类型或先完成类型收窄，并清理未使用的变量和导入。
+- 使用 Supabase Auth 邮箱登录
+- 前端通过 `x-session` header 传递 access_token
+- 后端通过 `verifyAuth()` 验证 token
+- 中间件保护需登录的路由
 
-### next.config 配置规范
+## 注意事项
 
-- 配置的路径不要写死绝对路径，必须使用 path.resolve(__dirname, ...)、import.meta.dirname 或 process.cwd() 动态拼接。
-
-### Hydration 问题防范
-
-1. 严禁在 JSX 渲染逻辑中直接使用 typeof window、Date.now()、Math.random() 等动态数据。**必须使用 'use client' 并配合 useEffect + useState 确保动态内容仅在客户端挂载后渲染**；同时严禁非法 HTML 嵌套（如 <p> 嵌套 <div>）。
-2. **禁止使用 head 标签**，优先使用 metadata，详见文档：https://nextjs.org/docs/app/api-reference/functions/generate-metadata
-   1. 三方 CSS、字体等资源可在 `globals.css` 中顶部通过 `@import` 引入或使用 next/font
-   2. preload, preconnect, dns-prefetch 通过 ReactDOM 的 preload、preconnect、dns-prefetch 方法引入
-   3. json-ld 可阅读 https://nextjs.org/docs/app/guides/json-ld
-
-## UI 设计与组件规范 (UI & Styling Standards)
-
-- 模板默认预装核心组件库 `shadcn/ui`，位于`src/components/ui/`目录下
-- Next.js 项目**必须默认**采用 shadcn/ui 组件、风格和规范，**除非用户指定用其他的组件和规范。**
+- 所有删除操作为软删除（设置 deleted_at），数据进入回收站
+- 事项与任务是一对多关系
+- 自定义字段通过 case_type_fields + case_field_values 实现
+- 搜索使用 PostgreSQL ILIKE 模糊匹配

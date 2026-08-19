@@ -38,11 +38,16 @@ export default function HomePage() {
   const { api } = useApi();
   const { profile } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [cases, setCases] = useState<CaseItem[]>([]);
   const [navLinks, setNavLinks] = useState<NavItem[]>([]);
   const [consultationSummary, setConsultationSummary] = useState<ConsultationSummary | null>(null);
   const [stats, setStats] = useState({ caseCount: 0, monthNew: 0, monthClosed: 0, overdue: 0, taskCount: 0 });
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -84,12 +89,14 @@ export default function HomePage() {
     setLoading(false);
   };
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = mounted ? new Date().toISOString().split('T')[0] : '';
+  const now = mounted ? new Date().toISOString() : '';
+  const weekLater = mounted ? new Date(Date.now() + 7 * 86400000).toISOString() : '';
   const myTasks = tasks.filter(t => t.status !== 'completed' && t.status !== 'cancelled');
   const todayTasks = myTasks.filter(t => t.due_date && t.due_date.startsWith(today));
-  const overdueTasks = myTasks.filter(t => t.due_date && t.due_date < new Date().toISOString() && t.status !== 'completed');
+  const overdueTasks = myTasks.filter(t => t.due_date && t.due_date < now && t.status !== 'completed');
   const urgentTasks = myTasks.filter(t => t.importance === 'important' && t.urgency === 'urgent');
-  const upcomingTasks = myTasks.filter(t => t.due_date && t.due_date > new Date().toISOString() && t.due_date < new Date(Date.now() + 7 * 86400000).toISOString());
+  const upcomingTasks = myTasks.filter(t => t.due_date && t.due_date > now && t.due_date < weekLater);
 
   const activeCases = cases.filter(c => c.status !== 'archived');
   const recentCases = [...cases].sort((a, b) => b.updated_at.localeCompare(a.updated_at)).slice(0, 5);

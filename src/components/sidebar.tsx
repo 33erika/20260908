@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import {
   Scale, Home, Link2, CheckSquare, Briefcase,
   BarChart3, Search, Trash2, Settings, LogOut, User,
-  MessageSquare
+  MessageSquare, Sparkles
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -16,6 +16,7 @@ const navItems = [
   { href: '/links', label: '法务导航', icon: Link2 },
   { href: '/todos', label: '待办与提醒', icon: CheckSquare },
   { href: '/cases', label: '法务事项', icon: Briefcase },
+  { href: '/smart-input', label: '智能录入', icon: Sparkles },
   { href: '/consultations', label: '法律咨询', icon: MessageSquare, badge: true },
   { href: '/dashboard', label: '数据汇总', icon: BarChart3 },
   { href: '/search', label: '全局搜索', icon: Search },

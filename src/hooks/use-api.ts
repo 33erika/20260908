@@ -91,6 +91,44 @@ function createApi() {
     // Profiles
     getProfiles: () => fetchApi('/api/profiles'),
     updateProfile: (body: Record<string, unknown>) => fetchApi('/api/profiles', { method: 'PUT', body: JSON.stringify(body) }),
+
+    // Case Deadlines
+    getCaseDeadlines: (params?: Record<string, string>) => {
+      const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+      return fetchApi(`/api/case-deadlines${qs}`);
+    },
+    createCaseDeadline: (body: Record<string, unknown>) => fetchApi('/api/case-deadlines', { method: 'POST', body: JSON.stringify(body) }),
+    updateCaseDeadline: (body: Record<string, unknown>) => fetchApi('/api/case-deadlines', { method: 'PUT', body: JSON.stringify(body) }),
+    deleteCaseDeadline: (id: string) => fetchApi(`/api/case-deadlines?id=${id}`, { method: 'DELETE' }),
+
+    // Case Progress
+    getCaseProgress: (params?: Record<string, string>) => {
+      const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+      return fetchApi(`/api/case-progress${qs}`);
+    },
+    createCaseProgress: (body: Record<string, unknown>) => fetchApi('/api/case-progress', { method: 'POST', body: JSON.stringify(body) }),
+    deleteCaseProgress: (id: string) => fetchApi(`/api/case-progress?id=${id}`, { method: 'DELETE' }),
+
+    // Reminder Rules
+    getReminderRules: () => fetchApi('/api/reminder-rules'),
+    updateReminderRule: (body: Record<string, unknown>) => fetchApi('/api/reminder-rules', { method: 'POST', body: JSON.stringify(body) }),
+    createReminderRule: (body: Record<string, unknown>) => fetchApi('/api/reminder-rules', { method: 'POST', body: JSON.stringify(body) }),
+    deleteReminderRule: (id: string) => fetchApi(`/api/reminder-rules?id=${id}`, { method: 'DELETE' }),
+
+    // Data Management (export/import/clear)
+    exportData: () => fetchApi('/api/data'),
+    importData: (data: Record<string, unknown>) => fetchApi('/api/data', { method: 'POST', body: JSON.stringify({ action: 'import', data }) }),
+    clearData: () => fetchApi('/api/data', { method: 'POST', body: JSON.stringify({ action: 'clear' }) }),
+
+    // Smart Input
+    smartInputParse: (text: string) => fetchApi('/api/smart-input/parse', { method: 'POST', body: JSON.stringify({ text }) }),
+    smartInputMatch: (caseNumber: string, parties: string) => {
+      const params = new URLSearchParams();
+      if (caseNumber) params.set('caseNumber', caseNumber);
+      if (parties) params.set('parties', parties);
+      return fetchApi(`/api/smart-input/match?${params.toString()}`);
+    },
+    smartInputImport: (body: Record<string, unknown>) => fetchApi('/api/smart-input/import', { method: 'POST', body: JSON.stringify(body) }),
   };
 }
 

@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Pencil, Trash2, Loader2, Settings, Users, FileText, Clock } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, Settings, Users, FileText, Clock, Database, Download, Upload, AlertTriangle, CheckCircle2 } from 'lucide-react';
 
 interface CaseType { id: string; name: string; description: string | null; case_type_fields: FieldDef[]; case_stages: StageDef[]; }
 interface FieldDef { id: string; field_name: string; field_type: string; is_required: boolean; is_visible: boolean; options: string[] | null; sort_order: number; }
@@ -20,11 +20,20 @@ interface OpLog { id: string; action: string; entity_type: string; entity_name: 
 export default function SettingsPage() {
   const { api } = useApi();
   const { profile } = useAuth();
-  const [activeTab, setActiveTab] = useState<'types' | 'users' | 'logs'>('types');
+  const [activeTab, setActiveTab] = useState<'types' | 'users' | 'logs' | 'data'>('types');
   const [caseTypes, setCaseTypes] = useState<CaseType[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [logs, setLogs] = useState<OpLog[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Data management state
+  const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [clearing, setClearing] = useState(false);
+  const [dataMessage, setDataMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [confirmClear, setConfirmClear] = useState(false);
+  const [confirmImport, setConfirmImport] = useState(false);
+  const [pendingImportFile, setPendingImportFile] = useState<File | null>(null);
 
   // Dialogs
   const [typeDialogOpen, setTypeDialogOpen] = useState(false);
@@ -107,6 +116,7 @@ export default function SettingsPage() {
     { key: 'types' as const, label: '事项类型配置', icon: FileText },
     { key: 'users' as const, label: '用户管理', icon: Users },
     { key: 'logs' as const, label: '操作记录', icon: Clock },
+    { key: 'data' as const, label: '数据管理', icon: Database },
   ];
 
   const ACTION_LABELS: Record<string, string> = {

@@ -30,6 +30,9 @@
 │   │   │   ├── recycle/        # 回收站
 │   │   │   ├── operation-logs/ # 操作记录
 │   │   │   ├── documents/      # 文档关联
+│   │   │   ├── case-deadlines/ # 法律期限管理
+│   │   │   ├── case-progress/  # 案件进展时间线
+│   │   │   ├── reminder-rules/ # 提醒规则配置
 │   │   │   └── profiles/       # 用户管理
 │   │   ├── login/              # 登录页
 │   │   ├── links/              # 法务导航页
@@ -65,6 +68,9 @@
 - **case_field_values**: 自定义字段值
 - **tasks**: 任务（每日提醒/定期任务/临时任务）
 - **case_documents**: 文档关联（钉钉文档链接）
+- **case_deadlines**: 法律期限（答辩期、举证期、上诉期等）
+- **case_progress**: 案件进展时间线
+- **reminder_rules**: 提醒规则配置
 - **operation_logs**: 操作记录
 - **recycle_bin**: 回收站
 

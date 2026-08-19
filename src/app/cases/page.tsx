@@ -121,13 +121,17 @@ export default function CasesPage() {
     const fvArr = Object.entries(fieldValues).map(([field_id, value]) => ({ field_id, value }));
     if (fvArr.length > 0) body.field_values = fvArr;
 
-    if (editingCase) {
-      await api.updateCase({ id: editingCase.id, ...body });
-    } else {
-      await api.createCase(body);
+    try {
+      if (editingCase) {
+        await api.updateCase({ id: editingCase.id, ...body });
+      } else {
+        await api.createCase(body);
+      }
+      setDialogOpen(false);
+      loadData();
+    } catch (err) {
+      alert(`保存失败：${err instanceof Error ? err.message : '未知错误'}`);
     }
-    setDialogOpen(false);
-    loadData();
   };
 
   const deleteCase = async (id: string) => {

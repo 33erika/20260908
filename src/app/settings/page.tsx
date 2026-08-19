@@ -53,9 +53,13 @@ export default function SettingsPage() {
 
   const createType = async () => {
     if (!typeName.trim()) return;
-    await api.createCaseTypeItem({ action: 'create_type', name: typeName, description: typeDesc });
-    setTypeDialogOpen(false); setTypeName(''); setTypeDesc('');
-    loadData();
+    try {
+      await api.createCaseTypeItem({ action: 'create_type', name: typeName, description: typeDesc });
+      setTypeDialogOpen(false); setTypeName(''); setTypeDesc('');
+      loadData();
+    } catch (err) {
+      alert(`保存失败：${err instanceof Error ? err.message : '未知错误'}`);
+    }
   };
 
   const createField = async () => {
@@ -68,17 +72,25 @@ export default function SettingsPage() {
     if (fieldForm.field_type === 'select' && fieldForm.options) {
       body.options = fieldForm.options.split(',').map(s => s.trim()).filter(Boolean);
     }
-    await api.createCaseTypeItem(body);
-    setFieldDialogOpen(false);
-    setFieldForm({ field_name: '', field_type: 'text', is_required: false, options: '' });
-    loadData();
+    try {
+      await api.createCaseTypeItem(body);
+      setFieldDialogOpen(false);
+      setFieldForm({ field_name: '', field_type: 'text', is_required: false, options: '' });
+      loadData();
+    } catch (err) {
+      alert(`保存失败：${err instanceof Error ? err.message : '未知错误'}`);
+    }
   };
 
   const createStage = async () => {
     if (!stageName.trim() || !editingTypeId) return;
-    await api.createCaseTypeItem({ action: 'create_stage', case_type_id: editingTypeId, name: stageName });
-    setStageDialogOpen(false); setStageName('');
-    loadData();
+    try {
+      await api.createCaseTypeItem({ action: 'create_stage', case_type_id: editingTypeId, name: stageName });
+      setStageDialogOpen(false); setStageName('');
+      loadData();
+    } catch (err) {
+      alert(`保存失败：${err instanceof Error ? err.message : '未知错误'}`);
+    }
   };
 
   const deleteField = async (id: string) => {

@@ -105,13 +105,17 @@ export default function TodosPage() {
     if (form.owner_id) body.owner_id = form.owner_id;
     if (form.due_date) body.due_date = new Date(form.due_date).toISOString();
 
-    if (editingTask) {
-      await api.updateTask({ id: editingTask.id, ...body });
-    } else {
-      await api.createTask(body);
+    try {
+      if (editingTask) {
+        await api.updateTask({ id: editingTask.id, ...body });
+      } else {
+        await api.createTask(body);
+      }
+      setDialogOpen(false);
+      loadData();
+    } catch (err) {
+      alert(`保存失败：${err instanceof Error ? err.message : '未知错误'}`);
     }
-    setDialogOpen(false);
-    loadData();
   };
 
   const updateTaskInline = async (id: string, updates: Record<string, unknown>) => {

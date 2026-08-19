@@ -301,6 +301,62 @@ export const system_settings = pgTable(
   ]
 );
 
+// ==================== Case Deadlines (Legal Deadlines) ====================
+export const case_deadlines = pgTable(
+  "case_deadlines",
+  {
+    id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+    case_id: varchar("case_id", { length: 36 }).notNull().references(() => cases.id),
+    deadline_type: varchar("deadline_type", { length: 100 }).notNull(),
+    deadline_date: timestamp("deadline_date", { withTimezone: true }).notNull(),
+    description: text("description"),
+    status: varchar("status", { length: 20 }).notNull().default("pending"), // pending | completed | overdue
+    created_by: varchar("created_by", { length: 36 }).notNull().references(() => profiles.id),
+    created_at: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("case_deadlines_case_idx").on(table.case_id),
+    index("case_deadlines_date_idx").on(table.deadline_date),
+    index("case_deadlines_status_idx").on(table.status),
+  ]
+);
+
+// ==================== Case Progress (Timeline) ====================
+export const case_progress = pgTable(
+  "case_progress",
+  {
+    id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+    case_id: varchar("case_id", { length: 36 }).notNull().references(() => cases.id),
+    content: text("content").notNull(),
+    progress_date: timestamp("progress_date", { withTimezone: true }).notNull().defaultNow(),
+    created_by: varchar("created_by", { length: 36 }).notNull().references(() => profiles.id),
+    created_at: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("case_progress_case_idx").on(table.case_id),
+    index("case_progress_date_idx").on(table.progress_date),
+  ]
+);
+
+// ==================== Reminder Rules ====================
+export const reminder_rules = pgTable(
+  "reminder_rules",
+  {
+    id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+    rule_name: varchar("rule_name", { length: 100 }).notNull(),
+    time_before: integer("time_before").notNull(),
+    time_unit: varchar("time_unit", { length: 20 }).notNull().default("day"),
+    is_enabled: boolean("is_enabled").notNull().default(true),
+    sort_order: integer("sort_order").notNull().default(0),
+    created_at: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("reminder_rules_sort_idx").on(table.sort_order),
+  ]
+);
+
 // Export types
 export type Profile = typeof profiles.$inferSelect;
 export type NavCategory = typeof nav_categories.$inferSelect;
@@ -313,5 +369,8 @@ export type CaseFieldValue = typeof case_field_values.$inferSelect;
 export type Task = typeof tasks.$inferSelect;
 export type CaseDocument = typeof case_documents.$inferSelect;
 export type OperationLog = typeof operation_logs.$inferSelect;
+export type CaseDeadline = typeof case_deadlines.$inferSelect;
+export type CaseProgress = typeof case_progress.$inferSelect;
+export type ReminderRule = typeof reminder_rules.$inferSelect;
 export type RecycleBinItem = typeof recycle_bin.$inferSelect;
 export type SystemSetting = typeof system_settings.$inferSelect;

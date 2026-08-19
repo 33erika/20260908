@@ -33,11 +33,13 @@
 │   │   │   ├── case-deadlines/ # 法律期限管理
 │   │   │   ├── case-progress/  # 案件进展时间线
 │   │   │   ├── reminder-rules/ # 提醒规则配置
+│   │   │   ├── smart-input/    # 智能录入（parse/match/import）
 │   │   │   └── profiles/       # 用户管理
 │   │   ├── login/              # 登录页
 │   │   ├── links/              # 法务导航页
 │   │   ├── todos/              # 待办与提醒页
 │   │   ├── cases/              # 法务事项页
+│   │   ├── smart-input/        # 智能录入页
 │   │   ├── dashboard/          # 数据汇总页
 │   │   ├── search/             # 搜索页
 │   │   ├── recycle/            # 回收站页

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { useSupabaseConfig } from '@/lib/supabase-config-inject';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Loader2, Scale } from 'lucide-react';
 
 export default function LoginPage() {
+  const router = useRouter();
   const { signIn } = useAuth();
   const { isLoading: configLoading } = useSupabaseConfig();
   const [email, setEmail] = useState('');
@@ -25,8 +27,10 @@ export default function LoginPage() {
 
     if (result.error) {
       setError(result.error);
+      setLoading(false);
+    } else {
+      router.push('/');
     }
-    setLoading(false);
   };
 
   if (configLoading) {

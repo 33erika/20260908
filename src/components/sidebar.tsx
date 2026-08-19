@@ -6,14 +6,17 @@ import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/utils';
 import {
   Scale, Home, Link2, CheckSquare, Briefcase,
-  BarChart3, Search, Trash2, Settings, LogOut, User
+  BarChart3, Search, Trash2, Settings, LogOut, User,
+  MessageSquare
 } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 const navItems = [
   { href: '/', label: '首页', icon: Home },
   { href: '/links', label: '法务导航', icon: Link2 },
   { href: '/todos', label: '待办与提醒', icon: CheckSquare },
   { href: '/cases', label: '法务事项', icon: Briefcase },
+  { href: '/consultations', label: '法律咨询', icon: MessageSquare, badge: true },
   { href: '/dashboard', label: '数据汇总', icon: BarChart3 },
   { href: '/search', label: '全局搜索', icon: Search },
   { href: '/recycle', label: '回收站', icon: Trash2 },
@@ -24,6 +27,26 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { profile, signOut } = useAuth();
+  const [consultationCount, setConsultationCount] = useState(0);
+
+  useEffect(() => {
+    // 获取法律咨询待处理数量
+    const fetchCount = async () => {
+      try {
+        const res = await fetch('/api/consultations?limit=1');
+        if (res.ok) {
+          const data = await res.json();
+          setConsultationCount(data.summary?.pending || 0);
+        }
+      } catch {
+        // silent
+      }
+    };
+    fetchCount();
+    // 每 30 秒刷新一次
+    const interval = setInterval(fetchCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleSignOut = async () => {
     await signOut();

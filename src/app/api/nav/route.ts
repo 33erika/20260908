@@ -29,7 +29,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ data });
   }
 
-  return NextResponse.json({ data: [] });
+  // Default: return categories with links
+  const { data, error } = await client
+    .from('nav_categories')
+    .select('*, nav_links(*)')
+    .is('deleted_at', null)
+    .order('sort_order');
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ data });
 }
 
 export async function POST(request: NextRequest) {

@@ -6,7 +6,8 @@ import { useAuth } from '@/lib/auth-context';
 import Link from 'next/link';
 import {
   Briefcase, CheckSquare, Clock, AlertTriangle,
-  TrendingUp, Calendar, ArrowRight, ExternalLink, Loader2
+  TrendingUp, Calendar, ArrowRight, ExternalLink, Loader2,
+  MessageSquare
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -240,6 +241,59 @@ export default function HomePage() {
           </CardContent>
         </Card>
       )}
+
+      {/* 法律咨询概览 */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <MessageSquare className="h-4 w-4 text-purple-600" />
+              法律咨询概览
+            </CardTitle>
+            <Link href="/consultations">
+              <Button variant="ghost" size="sm" className="text-xs">查看全部 <ArrowRight className="h-3 w-3 ml-1" /></Button>
+            </Link>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {consultationsLoading ? (
+            <div className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-slate-300" /></div>
+          ) : (
+            <>
+              <div className="grid grid-cols-4 gap-4 mb-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-orange-600">{consultationsSummary.pending}</div>
+                  <div className="text-xs text-slate-500 mt-1">待处理</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600">{consultationsSummary.processing}</div>
+                  <div className="text-xs text-slate-500 mt-1">处理中</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">{consultationsSummary.replied}</div>
+                  <div className="text-xs text-slate-500 mt-1">已回复</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-slate-600">{consultationsSummary.closed}</div>
+                  <div className="text-xs text-slate-500 mt-1">已结案</div>
+                </div>
+              </div>
+              {latestConsultation && (
+                <div className="border-t pt-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <span className="inline-block w-2 h-2 rounded-full bg-orange-500 flex-shrink-0"></span>
+                      <span className="text-sm text-slate-700 truncate">最新咨询：{latestConsultation.title}</span>
+                      <span className="text-xs text-slate-400 flex-shrink-0">{latestConsultation.timeAgo}</span>
+                    </div>
+                    <a href={`${consultationSystemUrl}/consultation/${latestConsultation.id}`} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 hover:text-indigo-800 flex-shrink-0 ml-2">去处理 →</a>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

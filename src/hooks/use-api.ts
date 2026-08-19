@@ -66,6 +66,12 @@ function createApi() {
     // Dashboard
     getDashboard: () => fetchApi('/api/dashboard'),
 
+    // Consultations (法律咨询)
+    getConsultations: (params?: Record<string, string>) => {
+      const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+      return fetchApi(`/api/consultations${qs}`);
+    },
+
     // Documents
     getDocuments: (caseId: string) => fetchApi(`/api/documents?caseId=${caseId}`),
     createDocument: (body: Record<string, unknown>) => fetchApi('/api/documents', { method: 'POST', body: JSON.stringify(body) }),

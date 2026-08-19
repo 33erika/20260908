@@ -28,6 +28,10 @@ interface NavItem {
   id: string; name: string; url: string; icon: string | null;
   nav_categories: { name: string } | null;
 }
+interface ConsultationSummary {
+  pending: number; processing: number; replied: number; closed: number;
+  latest: { id: string; title: string; submitter: string; submit_time: string } | null;
+}
 
 export default function HomePage() {
   const { api } = useApi();
@@ -36,6 +40,7 @@ export default function HomePage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [cases, setCases] = useState<CaseItem[]>([]);
   const [navLinks, setNavLinks] = useState<NavItem[]>([]);
+  const [consultationSummary, setConsultationSummary] = useState<ConsultationSummary | null>(null);
   const [stats, setStats] = useState({ caseCount: 0, monthNew: 0, monthClosed: 0, overdue: 0, taskCount: 0 });
 
   useEffect(() => {
@@ -46,14 +51,16 @@ export default function HomePage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [tasksRes, casesRes, navRes, dashRes] = await Promise.all([
+      const [tasksRes, casesRes, navRes, dashRes, consultationRes] = await Promise.all([
         api.getTasks({ owner: 'me' }),
         api.getCases(),
         api.getNavCategories(),
         api.getDashboard(),
+        api.getConsultations(),
       ]);
       setTasks(tasksRes.data || []);
       setCases(casesRes.data || []);
+      setConsultationSummary(consultationRes.data || null);
       setStats({
         caseCount: dashRes.data?.cases?.total || 0,
         monthNew: dashRes.data?.cases?.monthNew || 0,

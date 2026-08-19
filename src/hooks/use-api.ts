@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { getSupabaseBrowserClientWithRetry } from '@/lib/supabase-browser';
 
@@ -13,9 +14,7 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
   return headers;
 }
 
-export function useApi() {
-  const { user } = useAuth();
-
+function createApi() {
   const fetchApi = async (url: string, options?: RequestInit) => {
     const headers = await getAuthHeaders();
     const res = await fetch(url, { ...options, headers: { ...headers, ...options?.headers } });
@@ -26,7 +25,7 @@ export function useApi() {
     return res.json();
   };
 
-  const api = {
+  return {
     // Navigation
     getNavCategories: () => fetchApi('/api/nav'),
     createNavItem: (body: Record<string, unknown>) => fetchApi('/api/nav', { method: 'POST', body: JSON.stringify(body) }),
@@ -87,6 +86,11 @@ export function useApi() {
     getProfiles: () => fetchApi('/api/profiles'),
     updateProfile: (body: Record<string, unknown>) => fetchApi('/api/profiles', { method: 'PUT', body: JSON.stringify(body) }),
   };
+}
+
+export function useApi() {
+  const { user } = useAuth();
+  const api = useMemo(() => createApi(), [user]);
 
   return { api, isAuthenticated: !!user };
 }

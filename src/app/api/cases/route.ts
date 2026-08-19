@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json();
   const client = getSupabaseClient();
-  const { field_values, ...caseData } = body;
+  const { field_values, action, ...caseData } = body;
 
   const { data: newCase, error } = await client
     .from('cases')

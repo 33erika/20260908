@@ -28,10 +28,11 @@ export async function POST(request: NextRequest) {
   if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = await request.json();
+  const { action, ...insertData } = body;
   const client = getSupabaseClient();
   const { data, error } = await client
     .from('tasks')
-    .insert({ ...body, created_by: auth.userId, owner_id: body.owner_id || auth.userId })
+    .insert({ ...insertData, created_by: auth.userId, owner_id: body.owner_id || auth.userId })
     .select()
     .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

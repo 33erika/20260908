@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { email, fullName, password } = body;
+  const { email, fullName, password, role } = body;
 
   if (!email || !fullName || !password) {
     return NextResponse.json({ error: '邮箱、姓名和密码均为必填' }, { status: 400 });
@@ -34,6 +34,7 @@ export async function POST(request: NextRequest) {
   }
 
   const normalizedEmail = email.toLowerCase().trim();
+  const userRole = role === 'admin' ? 'admin' : 'member';
 
   // Check if user already exists in whitelist
   const { data: existingWhitelist } = await dbClient
@@ -91,7 +92,7 @@ export async function POST(request: NextRequest) {
       id: newUser.id,
       email: normalizedEmail,
       full_name: fullName,
-      role: 'member',
+      role: userRole,
     });
 
   if (profileError) {

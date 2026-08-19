@@ -32,7 +32,7 @@ export default function SettingsPage() {
 
   // Create user dialog state
   const [createUserDialogOpen, setCreateUserDialogOpen] = useState(false);
-  const [createUserForm, setCreateUserForm] = useState({ email: '', fullName: '', password: '' });
+  const [createUserForm, setCreateUserForm] = useState({ email: '', fullName: '', password: '', role: 'member' });
   const [creatingUser, setCreatingUser] = useState(false);
   const [createUserError, setCreateUserError] = useState('');
   const [createUserSuccess, setCreateUserSuccess] = useState('');
@@ -280,7 +280,7 @@ export default function SettingsPage() {
                         创建新账号并自动加入白名单。此功能为钉钉登录上线前的临时过渡方案。
                       </p>
                     </div>
-                    <Button onClick={() => { setCreateUserForm({ email: '', fullName: '', password: '' }); setCreateUserError(''); setCreateUserSuccess(''); setCreateUserDialogOpen(true); }}>
+                    <Button onClick={() => { setCreateUserForm({ email: '', fullName: '', password: '', role: 'member' }); setCreateUserError(''); setCreateUserSuccess(''); setCreateUserDialogOpen(true); }}>
                       <Plus className="h-4 w-4 mr-1" /> 创建账号
                     </Button>
                   </div>
@@ -682,6 +682,16 @@ export default function SettingsPage() {
                 minLength={6}
               />
             </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700">角色</label>
+              <Select value={createUserForm.role} onValueChange={v => setCreateUserForm(f => ({ ...f, role: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="member">法务成员</SelectItem>
+                  <SelectItem value="admin">管理员</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             {createUserError && (
               <div className="p-3 rounded-lg bg-red-50 text-red-600 text-sm">{createUserError}</div>
             )}
@@ -692,7 +702,7 @@ export default function SettingsPage() {
                 setCreatingUser(true);
                 setCreateUserError('');
                 try {
-                  await api.createUser(createUserForm.email, createUserForm.fullName, createUserForm.password);
+                  await api.createUser(createUserForm.email, createUserForm.fullName, createUserForm.password, createUserForm.role);
                   setCreateUserSuccess(`账号 ${createUserForm.email} 创建成功！请将密码告知用户。`);
                   setCreateUserDialogOpen(false);
                   loadData();

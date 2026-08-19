@@ -18,12 +18,21 @@ export async function GET(request: NextRequest) {
       .maybeSingle();
 
     if (!profile) {
-      // Check if this is the first user - make them admin
+      // Check if this email should be admin (pre-defined admin emails or first user)
+      const adminEmails = [
+        'zixuan.huang@hollyland.com',
+        'shan.lu@hollyland.com',
+        'zinong.liu@hollyland.com',
+      ];
+      const isAdminEmail = adminEmails.includes(auth.email.toLowerCase());
+
+      // Also check if this is the first user
       const { count } = await dbClient
         .from('profiles')
         .select('*', { count: 'exact', head: true });
 
       const isFirstUser = (count ?? 0) === 0;
+      const role = (isAdminEmail || isFirstUser) ? 'admin' : 'member';
 
       const { data: newProfile, error: createError } = await dbClient
         .from('profiles')
@@ -31,7 +40,7 @@ export async function GET(request: NextRequest) {
           id: auth.userId,
           email: auth.email,
           full_name: auth.fullName,
-          role: isFirstUser ? 'admin' : 'member',
+          role,
         })
         .select()
         .single();

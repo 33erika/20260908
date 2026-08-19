@@ -137,8 +137,8 @@ function createApi() {
     removeAllowedEmail: (id: string) => fetchApi(`/api/auth/allowed-emails?id=${id}`, { method: 'DELETE' }),
 
     // Admin: Create user account
-    createUser: (email: string, fullName: string, password: string) =>
-      fetchApi('/api/auth/create-user', { method: 'POST', body: JSON.stringify({ email, fullName, password }) }),
+    createUser: (email: string, fullName: string, password: string, role?: string) =>
+      fetchApi('/api/auth/create-user', { method: 'POST', body: JSON.stringify({ email, fullName, password, role }) }),
   };
 }
 

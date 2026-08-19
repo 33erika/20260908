@@ -2,7 +2,10 @@ import { verifyAuth } from '@/lib/api-auth';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const auth = await verifyAuth(request);
+  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   const client = getSupabaseClient();
   const { data, error } = await client
     .from('reminder_rules')

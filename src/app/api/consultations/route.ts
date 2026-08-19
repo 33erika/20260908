@@ -73,11 +73,11 @@ function getMockConsultations() {
 }
 
 // GET - 获取法律咨询概览数据
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     const authResult = await verifyAuth(request);
-    if (!authResult.success) {
-      return NextResponse.json({ error: authResult.error }, { status: 401 });
+    if (!authResult || !authResult.success) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);

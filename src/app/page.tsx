@@ -256,37 +256,37 @@ export default function HomePage() {
           </div>
         </CardHeader>
         <CardContent>
-          {consultationsLoading ? (
+          {loading ? (
             <div className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-slate-300" /></div>
           ) : (
             <>
               <div className="grid grid-cols-4 gap-4 mb-4">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-orange-600">{consultationsSummary.pending}</div>
+                  <div className="text-2xl font-bold text-orange-600">{consultationSummary?.pending || 0}</div>
                   <div className="text-xs text-slate-500 mt-1">待处理</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">{consultationsSummary.processing}</div>
+                  <div className="text-2xl font-bold text-blue-600">{consultationSummary?.processing || 0}</div>
                   <div className="text-xs text-slate-500 mt-1">处理中</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">{consultationsSummary.replied}</div>
+                  <div className="text-2xl font-bold text-green-600">{consultationSummary?.replied || 0}</div>
                   <div className="text-xs text-slate-500 mt-1">已回复</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-slate-600">{consultationsSummary.closed}</div>
+                  <div className="text-2xl font-bold text-slate-600">{consultationSummary?.closed || 0}</div>
                   <div className="text-xs text-slate-500 mt-1">已结案</div>
                 </div>
               </div>
-              {latestConsultation && (
+              {consultationSummary?.latest && (
                 <div className="border-t pt-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 min-w-0 flex-1">
                       <span className="inline-block w-2 h-2 rounded-full bg-orange-500 flex-shrink-0"></span>
-                      <span className="text-sm text-slate-700 truncate">最新咨询：{latestConsultation.title}</span>
-                      <span className="text-xs text-slate-400 flex-shrink-0">{latestConsultation.timeAgo}</span>
+                      <span className="text-sm text-slate-700 truncate">最新咨询：{consultationSummary.latest.title}</span>
+                      <span className="text-xs text-slate-400 flex-shrink-0">{consultationSummary.latest.timeAgo}</span>
                     </div>
-                    <a href={`${consultationSystemUrl}/consultation/${latestConsultation.id}`} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 hover:text-indigo-800 flex-shrink-0 ml-2">去处理 →</a>
+                    <a href={`${consultationSummary.latest.url}`} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 hover:text-indigo-800 flex-shrink-0 ml-2">去处理 →</a>
                   </div>
                 </div>
               )}

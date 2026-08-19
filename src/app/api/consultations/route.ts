@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { verifyAuth } from '@/lib/api-auth';
 
 /**
@@ -31,6 +31,8 @@ function getMockConsultations() {
         submit_time: '2026-08-19T10:30:00Z',
         status: 'pending',
         urgency: 'high',
+        timeAgo: '2 小时前',
+        url: 'https://tqrrx73295.coze.site/consultations/c001',
       },
       {
         id: 'c002',
@@ -40,6 +42,8 @@ function getMockConsultations() {
         submit_time: '2026-08-19T09:15:00Z',
         status: 'pending',
         urgency: 'normal',
+        timeAgo: '3 小时前',
+        url: 'https://tqrrx73295.coze.site/consultations/c002',
       },
       {
         id: 'c003',
@@ -49,6 +53,8 @@ function getMockConsultations() {
         submit_time: '2026-08-18T16:45:00Z',
         status: 'processing',
         urgency: 'normal',
+        timeAgo: '昨天',
+        url: 'https://tqrrx73295.coze.site/consultations/c003',
       },
       {
         id: 'c004',
@@ -58,6 +64,8 @@ function getMockConsultations() {
         submit_time: '2026-08-18T14:20:00Z',
         status: 'replied',
         urgency: 'low',
+        timeAgo: '昨天',
+        url: 'https://tqrrx73295.coze.site/consultations/c004',
       },
       {
         id: 'c005',
@@ -67,6 +75,8 @@ function getMockConsultations() {
         submit_time: '2026-08-18T11:00:00Z',
         status: 'pending',
         urgency: 'high',
+        timeAgo: '昨天',
+        url: 'https://tqrrx73295.coze.site/consultations/c005',
       },
     ],
   };
@@ -76,7 +86,7 @@ function getMockConsultations() {
 export async function GET(request: NextRequest) {
   try {
     const authResult = await verifyAuth(request);
-    if (!authResult || !authResult.success) {
+    if (!authResult) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

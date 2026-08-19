@@ -31,7 +31,7 @@ interface NavItem {
 }
 interface ConsultationSummary {
   pending: number; processing: number; replied: number; closed: number;
-  latest: { id: string; title: string; submitter: string; submit_time: string } | null;
+  latest: { id: string; title: string; submitter: string; submit_time: string; timeAgo: string; url: string } | null;
 }
 
 export default function HomePage() {

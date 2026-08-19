@@ -66,6 +66,9 @@ function getSupabaseBrowserClient(): SupabaseClient {
       auth: {
         autoRefreshToken: true,
         persistSession: true,
+        storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+        storageKey: 'legal-workbench-auth',
+        flowType: 'pkce',
       },
     });
   }

@@ -26,6 +26,11 @@ export async function GET(request: NextRequest) {
       ];
       const isAdminEmail = adminEmails.includes(auth.email.toLowerCase());
 
+      // Only allow pre-defined admin emails to create profiles
+      if (!isAdminEmail) {
+        return NextResponse.json({ error: '该账号未授权，请联系管理员' }, { status: 403 });
+      }
+
       // Also check if this is the first user
       const { count } = await dbClient
         .from('profiles')
@@ -50,6 +55,11 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: `Failed to create profile: ${createError.message}` }, { status: 500 });
       }
       return NextResponse.json({ user: { id: auth.userId, email: auth.email }, profile: newProfile });
+    }
+
+    // Check if profile is active
+    if (!profile.is_active) {
+      return NextResponse.json({ error: '该账号已被停用，请联系管理员' }, { status: 403 });
     }
 
     return NextResponse.json({ user: { id: auth.userId, email: auth.email }, profile });

@@ -104,6 +104,10 @@ export default function TodosPage() {
     const body: Record<string, unknown> = { ...form };
     if (form.owner_id) body.owner_id = form.owner_id;
     if (form.due_date) body.due_date = new Date(form.due_date).toISOString();
+    // 清理空字符串字段
+    for (const [key, value] of Object.entries(body)) {
+      if (value === '') delete body[key];
+    }
 
     try {
       if (editingTask) {

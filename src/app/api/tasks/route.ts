@@ -29,10 +29,21 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json();
   const { action, ...insertData } = body;
+  
+  // 清理空字符串字段，转换为 null
+  const cleanedData: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(insertData)) {
+    if (value === '' || value === null || value === undefined) {
+      cleanedData[key] = null;
+    } else {
+      cleanedData[key] = value;
+    }
+  }
+  
   const client = getSupabaseClient();
   const { data, error } = await client
     .from('tasks')
-    .insert({ ...insertData, created_by: auth.userId, owner_id: body.owner_id || auth.userId })
+    .insert({ ...cleanedData, created_by: auth.userId, owner_id: body.owner_id || auth.userId })
     .select()
     .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -45,8 +56,19 @@ export async function PUT(request: NextRequest) {
 
   const body = await request.json();
   const { id, ...updates } = body;
+  
+  // 清理空字符串字段，转换为 null
+  const cleanedUpdates: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(updates)) {
+    if (value === '' || value === null || value === undefined) {
+      cleanedUpdates[key] = null;
+    } else {
+      cleanedUpdates[key] = value;
+    }
+  }
+  
   const client = getSupabaseClient();
-  const { data, error } = await client.from('tasks').update({ ...updates, updated_at: new Date().toISOString() }).eq('id', id).select().single();
+  const { data, error } = await client.from('tasks').update({ ...cleanedUpdates, updated_at: new Date().toISOString() }).eq('id', id).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ data });
 }

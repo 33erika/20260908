@@ -42,28 +42,36 @@ export default function LinksPage() {
 
   const saveCategory = async () => {
     if (!catName.trim()) return;
-    if (editingCat) {
-      await api.updateNavItem({ type: 'category', id: editingCat.id, name: catName });
-    } else {
-      await api.createNavItem({ type: 'category', name: catName, sort_order: categories.length });
+    try {
+      if (editingCat) {
+        await api.updateNavItem({ type: 'category', id: editingCat.id, name: catName });
+      } else {
+        await api.createNavItem({ type: 'category', name: catName, sort_order: categories.length });
+      }
+      setCatDialogOpen(false);
+      setCatName('');
+      setEditingCat(null);
+      loadData();
+    } catch (err) {
+      alert(`保存失败：${err instanceof Error ? err.message : '未知错误'}`);
     }
-    setCatDialogOpen(false);
-    setCatName('');
-    setEditingCat(null);
-    loadData();
   };
 
   const saveLink = async () => {
     if (!linkForm.name.trim() || !linkForm.url.trim()) return;
-    if (editingLink) {
-      await api.updateNavItem({ type: 'link', id: editingLink.id, ...linkForm, category_id: targetCatId });
-    } else {
-      await api.createNavItem({ type: 'link', category_id: targetCatId, ...linkForm, sort_order: 0 });
+    try {
+      if (editingLink) {
+        await api.updateNavItem({ type: 'link', id: editingLink.id, ...linkForm, category_id: targetCatId });
+      } else {
+        await api.createNavItem({ type: 'link', category_id: targetCatId, ...linkForm, sort_order: 0 });
+      }
+      setLinkDialogOpen(false);
+      setLinkForm({ name: '', url: '', icon: '', description: '' });
+      setEditingLink(null);
+      loadData();
+    } catch (err) {
+      alert(`保存失败：${err instanceof Error ? err.message : '未知错误'}`);
     }
-    setLinkDialogOpen(false);
-    setLinkForm({ name: '', url: '', icon: '', description: '' });
-    setEditingLink(null);
-    loadData();
   };
 
   const deleteCategory = async (id: string) => {

@@ -70,6 +70,7 @@ export function Sidebar() {
       <nav className="flex-1 py-3 px-3 space-y-0.5 overflow-y-auto">
         {navItems.map((item) => {
           const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+          const badgeCount = item.badge ? consultationCount : 0;
           return (
             <Link
               key={item.href}
@@ -82,7 +83,12 @@ export function Sidebar() {
               )}
             >
               <item.icon className={cn('h-4 w-4', isActive ? 'text-indigo-600' : 'text-slate-400')} />
-              {item.label}
+              <span className="flex-1">{item.label}</span>
+              {badgeCount > 0 && (
+                <span className="inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full bg-red-500 text-white text-xs font-medium">
+                  {badgeCount > 99 ? '99+' : badgeCount}
+                </span>
+              )}
             </Link>
           );
         })}

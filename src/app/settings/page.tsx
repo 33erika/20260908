@@ -30,9 +30,12 @@ export default function SettingsPage() {
   const [allowedEmails, setAllowedEmails] = useState<AllowedEmail[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Whitelist state
-  const [newWhitelistEmail, setNewWhitelistEmail] = useState('');
-  const [addingWhitelist, setAddingWhitelist] = useState(false);
+  // Create user dialog state
+  const [createUserDialogOpen, setCreateUserDialogOpen] = useState(false);
+  const [createUserForm, setCreateUserForm] = useState({ email: '', fullName: '', password: '' });
+  const [creatingUser, setCreatingUser] = useState(false);
+  const [createUserError, setCreateUserError] = useState('');
+  const [createUserSuccess, setCreateUserSuccess] = useState('');
 
   // Data management state
   const [exporting, setExporting] = useState(false);
@@ -257,49 +260,35 @@ export default function SettingsPage() {
           {/* Whitelist Tab */}
           {activeTab === 'whitelist' && (
             <div className="space-y-4">
+              {/* Status messages */}
+              {createUserSuccess && (
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-50 text-emerald-700 text-sm">
+                  <CheckCircle2 className="h-4 w-4" />
+                  {createUserSuccess}
+                </div>
+              )}
+
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <ShieldCheck className="h-4 w-4 text-indigo-600" />
-                    注册白名单管理
-                  </CardTitle>
-                  <p className="text-xs text-slate-500">
-                    仅白名单中的邮箱可以注册新账号。此功能为钉钉登录上线前的临时过渡方案。
-                  </p>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Add email form */}
-                  <div className="flex gap-2">
-                    <Input
-                      type="email"
-                      placeholder="输入邮箱地址添加到白名单"
-                      value={newWhitelistEmail}
-                      onChange={e => setNewWhitelistEmail(e.target.value)}
-                      className="flex-1"
-                    />
-                    <Button
-                      disabled={addingWhitelist || !newWhitelistEmail.trim()}
-                      onClick={async () => {
-                        if (!newWhitelistEmail.trim()) return;
-                        setAddingWhitelist(true);
-                        try {
-                          await api.addAllowedEmail(newWhitelistEmail.trim());
-                          setNewWhitelistEmail('');
-                          loadData();
-                        } catch (err) {
-                          alert(err instanceof Error ? err.message : '添加失败');
-                        }
-                        setAddingWhitelist(false);
-                      }}
-                    >
-                      {addingWhitelist ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Plus className="h-4 w-4 mr-1" />}
-                      添加
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <ShieldCheck className="h-4 w-4 text-indigo-600" />
+                        账号管理
+                      </CardTitle>
+                      <p className="text-xs text-slate-500 mt-1">
+                        创建新账号并自动加入白名单。此功能为钉钉登录上线前的临时过渡方案。
+                      </p>
+                    </div>
+                    <Button onClick={() => { setCreateUserForm({ email: '', fullName: '', password: '' }); setCreateUserError(''); setCreateUserSuccess(''); setCreateUserDialogOpen(true); }}>
+                      <Plus className="h-4 w-4 mr-1" /> 创建账号
                     </Button>
                   </div>
-
+                </CardHeader>
+                <CardContent>
                   {/* Whitelist table */}
                   {allowedEmails.length === 0 ? (
-                    <div className="py-8 text-center text-slate-400 text-sm">白名单为空，请添加邮箱</div>
+                    <div className="py-8 text-center text-slate-400 text-sm">暂无账号，请点击"创建账号"添加</div>
                   ) : (
                     <table className="w-full text-sm">
                       <thead>
@@ -320,7 +309,7 @@ export default function SettingsPage() {
                                 size="sm"
                                 className="text-red-500 hover:text-red-700 hover:bg-red-50 h-7"
                                 onClick={async () => {
-                                  if (!confirm(`确认将 ${item.email} 从白名单中移除？`)) return;
+                                  if (!confirm(`确认将 ${item.email} 从白名单中移除？该用户将无法登录。`)) return;
                                   try {
                                     await api.removeAllowedEmail(item.id);
                                     loadData();
@@ -657,6 +646,65 @@ export default function SettingsPage() {
           <div className="space-y-3 pt-2">
             <Input placeholder="阶段名称" value={stageName} onChange={e => setStageName(e.target.value)} />
             <Button onClick={createStage} className="w-full">添加</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create User Dialog */}
+      <Dialog open={createUserDialogOpen} onOpenChange={setCreateUserDialogOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>创建账号</DialogTitle></DialogHeader>
+          <div className="space-y-3 pt-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700">邮箱</label>
+              <Input
+                type="email"
+                placeholder="用户登录邮箱"
+                value={createUserForm.email}
+                onChange={e => setCreateUserForm(f => ({ ...f, email: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700">姓名</label>
+              <Input
+                placeholder="用户姓名"
+                value={createUserForm.fullName}
+                onChange={e => setCreateUserForm(f => ({ ...f, fullName: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700">初始密码</label>
+              <Input
+                type="password"
+                placeholder="至少6位，创建后请告知用户"
+                value={createUserForm.password}
+                onChange={e => setCreateUserForm(f => ({ ...f, password: e.target.value }))}
+                minLength={6}
+              />
+            </div>
+            {createUserError && (
+              <div className="p-3 rounded-lg bg-red-50 text-red-600 text-sm">{createUserError}</div>
+            )}
+            <Button
+              className="w-full"
+              disabled={creatingUser || !createUserForm.email || !createUserForm.fullName || !createUserForm.password}
+              onClick={async () => {
+                setCreatingUser(true);
+                setCreateUserError('');
+                try {
+                  await api.createUser(createUserForm.email, createUserForm.fullName, createUserForm.password);
+                  setCreateUserSuccess(`账号 ${createUserForm.email} 创建成功！请将密码告知用户。`);
+                  setCreateUserDialogOpen(false);
+                  loadData();
+                } catch (err) {
+                  setCreateUserError(err instanceof Error ? err.message : '创建失败');
+                }
+                setCreatingUser(false);
+              }}
+            >
+              {creatingUser && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              创建
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

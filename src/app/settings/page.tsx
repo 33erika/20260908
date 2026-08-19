@@ -9,22 +9,30 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Pencil, Trash2, Loader2, Settings, Users, FileText, Clock, Database, Download, Upload, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, Settings, Users, FileText, Clock, Database, Download, Upload, AlertTriangle, CheckCircle2, Bell, ShieldCheck } from 'lucide-react';
 
 interface CaseType { id: string; name: string; description: string | null; case_type_fields: FieldDef[]; case_stages: StageDef[]; }
 interface FieldDef { id: string; field_name: string; field_type: string; is_required: boolean; is_visible: boolean; options: string[] | null; sort_order: number; }
 interface StageDef { id: string; name: string; sort_order: number; }
 interface Profile { id: string; full_name: string; email: string; role: string; }
 interface OpLog { id: string; action: string; entity_type: string; entity_name: string; created_at: string; user: { full_name: string } | null; }
+interface ReminderRule { id: string; rule_name: string; time_before: number; time_unit: string; is_enabled: boolean; sort_order: number; }
+interface AllowedEmail { id: string; email: string; created_at: string; created_by: string | null; profiles: { full_name: string } | null; }
 
 export default function SettingsPage() {
   const { api } = useApi();
   const { profile } = useAuth();
-  const [activeTab, setActiveTab] = useState<'types' | 'users' | 'logs' | 'data'>('types');
+  const [activeTab, setActiveTab] = useState<'types' | 'users' | 'whitelist' | 'logs' | 'data' | 'reminders'>('types');
   const [caseTypes, setCaseTypes] = useState<CaseType[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [logs, setLogs] = useState<OpLog[]>([]);
+  const [reminderRules, setReminderRules] = useState<ReminderRule[]>([]);
+  const [allowedEmails, setAllowedEmails] = useState<AllowedEmail[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Whitelist state
+  const [newWhitelistEmail, setNewWhitelistEmail] = useState('');
+  const [addingWhitelist, setAddingWhitelist] = useState(false);
 
   // Data management state
   const [exporting, setExporting] = useState(false);
@@ -48,12 +56,15 @@ export default function SettingsPage() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [typesRes, profilesRes, logsRes] = await Promise.all([
+      const [typesRes, profilesRes, logsRes, rulesRes, whitelistRes] = await Promise.all([
         api.getCaseTypes(), api.getProfiles(), api.getOperationLogs({ limit: '30' }),
+        api.getReminderRules(), api.getAllowedEmails(),
       ]);
       setCaseTypes(typesRes.data || []);
       setProfiles(profilesRes.data || []);
       setLogs(logsRes.data || []);
+      setReminderRules(rulesRes.data || []);
+      setAllowedEmails(whitelistRes.data || []);
     } catch { /* silent */ }
     setLoading(false);
   }, [api]);
@@ -115,6 +126,8 @@ export default function SettingsPage() {
   const tabs = [
     { key: 'types' as const, label: '事项类型配置', icon: FileText },
     { key: 'users' as const, label: '用户管理', icon: Users },
+    { key: 'whitelist' as const, label: '注册白名单', icon: ShieldCheck },
+    { key: 'reminders' as const, label: '提醒规则', icon: Bell },
     { key: 'logs' as const, label: '操作记录', icon: Clock },
     { key: 'data' as const, label: '数据管理', icon: Database },
   ];
@@ -130,7 +143,7 @@ export default function SettingsPage() {
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">系统设置</h1>
-        <p className="text-sm text-slate-500 mt-1">管理事项类型、用户和操作记录</p>
+        <p className="text-sm text-slate-500 mt-1">管理事项类型、用户、操作记录和数据备份</p>
       </div>
 
       {/* Tabs */}
@@ -241,6 +254,94 @@ export default function SettingsPage() {
             </Card>
           )}
 
+          {/* Whitelist Tab */}
+          {activeTab === 'whitelist' && (
+            <div className="space-y-4">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-indigo-600" />
+                    注册白名单管理
+                  </CardTitle>
+                  <p className="text-xs text-slate-500">
+                    仅白名单中的邮箱可以注册新账号。此功能为钉钉登录上线前的临时过渡方案。
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Add email form */}
+                  <div className="flex gap-2">
+                    <Input
+                      type="email"
+                      placeholder="输入邮箱地址添加到白名单"
+                      value={newWhitelistEmail}
+                      onChange={e => setNewWhitelistEmail(e.target.value)}
+                      className="flex-1"
+                    />
+                    <Button
+                      disabled={addingWhitelist || !newWhitelistEmail.trim()}
+                      onClick={async () => {
+                        if (!newWhitelistEmail.trim()) return;
+                        setAddingWhitelist(true);
+                        try {
+                          await api.addAllowedEmail(newWhitelistEmail.trim());
+                          setNewWhitelistEmail('');
+                          loadData();
+                        } catch (err) {
+                          alert(err instanceof Error ? err.message : '添加失败');
+                        }
+                        setAddingWhitelist(false);
+                      }}
+                    >
+                      {addingWhitelist ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Plus className="h-4 w-4 mr-1" />}
+                      添加
+                    </Button>
+                  </div>
+
+                  {/* Whitelist table */}
+                  {allowedEmails.length === 0 ? (
+                    <div className="py-8 text-center text-slate-400 text-sm">白名单为空，请添加邮箱</div>
+                  ) : (
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-slate-100">
+                          <th className="text-left p-3 font-medium text-slate-500">邮箱</th>
+                          <th className="text-left p-3 font-medium text-slate-500">添加时间</th>
+                          <th className="text-right p-3 font-medium text-slate-500">操作</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {allowedEmails.map(item => (
+                          <tr key={item.id} className="border-b border-slate-50">
+                            <td className="p-3 font-medium text-slate-900">{item.email}</td>
+                            <td className="p-3 text-slate-500 text-xs">{new Date(item.created_at).toLocaleString('zh-CN')}</td>
+                            <td className="p-3 text-right">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-red-500 hover:text-red-700 hover:bg-red-50 h-7"
+                                onClick={async () => {
+                                  if (!confirm(`确认将 ${item.email} 从白名单中移除？`)) return;
+                                  try {
+                                    await api.removeAllowedEmail(item.id);
+                                    loadData();
+                                  } catch (err) {
+                                    alert(err instanceof Error ? err.message : '删除失败');
+                                  }
+                                }}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
           {/* Logs Tab */}
           {activeTab === 'logs' && (
             <Card>
@@ -269,6 +370,242 @@ export default function SettingsPage() {
                 )}
               </CardContent>
             </Card>
+          )}
+
+          {/* Reminders Tab */}
+          {activeTab === 'reminders' && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Bell className="h-4 w-4 text-indigo-600" />
+                  提醒规则配置
+                </CardTitle>
+                <p className="text-xs text-slate-500">配置任务/期限到期前的提醒时间，每条规则可独立开关。</p>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {reminderRules.length === 0 ? (
+                  <div className="py-8 text-center text-slate-400 text-sm">暂无提醒规则</div>
+                ) : (
+                  reminderRules.map(rule => (
+                    <div key={rule.id} className="flex items-center justify-between p-3 rounded-lg border border-slate-100 hover:bg-slate-50 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-2 h-2 rounded-full ${rule.is_enabled ? 'bg-green-500' : 'bg-slate-300'}`} />
+                        <div>
+                          <p className={`text-sm font-medium ${rule.is_enabled ? 'text-slate-900' : 'text-slate-400'}`}>{rule.rule_name}</p>
+                          <p className="text-xs text-slate-500">
+                            {rule.time_before < 0 ? `逾期${Math.abs(rule.time_before)}${rule.time_unit === 'hour' ? '小时' : '天'}` :
+                              rule.time_before === 0 ? '截止当天' :
+                              `截止前 ${rule.time_before} ${rule.time_unit === 'hour' ? '小时' : '天'}`}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          await api.updateReminderRule({ action: 'toggle', id: rule.id, is_enabled: !rule.is_enabled });
+                          const res = await api.getReminderRules();
+                          setReminderRules(res.data || []);
+                        }}
+                        className={`relative w-10 h-5 rounded-full transition-colors ${rule.is_enabled ? 'bg-indigo-600' : 'bg-slate-300'}`}
+                      >
+                        <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${rule.is_enabled ? 'left-5' : 'left-0.5'}`} />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Data Management Tab */}
+          {activeTab === 'data' && (
+            <div className="space-y-6">
+              {/* Status message */}
+              {dataMessage && (
+                <div className={`flex items-center gap-2 p-3 rounded-lg text-sm ${
+                  dataMessage.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
+                }`}>
+                  {dataMessage.type === 'success' ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+                  {dataMessage.text}
+                </div>
+              )}
+
+              {/* Export */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Download className="h-4 w-4 text-blue-600" />
+                    全量数据导出
+                  </CardTitle>
+                  <p className="text-xs text-slate-500">将所有业务数据（导航、事项、任务、类型配置等）导出为 JSON 文件，用于备份或迁移。</p>
+                </CardHeader>
+                <CardContent>
+                  <Button
+                    variant="outline"
+                    disabled={exporting}
+                    onClick={async () => {
+                      setExporting(true);
+                      setDataMessage(null);
+                      try {
+                        const res = await api.exportData();
+                        const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        const timestamp = new Date().toISOString().slice(0, 10);
+                        a.download = `legal-workbench-backup-${timestamp}.json`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        setDataMessage({ type: 'success', text: '数据导出成功！文件已下载。' });
+                      } catch (err) {
+                        setDataMessage({ type: 'error', text: `导出失败：${err instanceof Error ? err.message : '未知错误'}` });
+                      }
+                      setExporting(false);
+                    }}
+                  >
+                    {exporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+                    导出 JSON 备份文件
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Import */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Upload className="h-4 w-4 text-amber-600" />
+                    从 JSON 恢复数据
+                  </CardTitle>
+                  <p className="text-xs text-slate-500">
+                    上传之前导出的 JSON 备份文件来恢复数据。
+                    <span className="text-red-500 font-medium">注意：导入会覆盖当前所有业务数据！</span>
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  {!confirmImport ? (
+                    <div className="flex items-center gap-3">
+                      <label className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-md cursor-pointer hover:bg-slate-50 transition-colors">
+                        <Upload className="h-4 w-4 text-slate-500" />
+                        <span className="text-sm text-slate-600">选择 JSON 文件</span>
+                        <input
+                          type="file"
+                          accept=".json"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              setPendingImportFile(file);
+                              setConfirmImport(true);
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 p-4 border border-amber-200 bg-amber-50 rounded-lg">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium text-amber-800">确认导入</p>
+                          <p className="text-xs text-amber-700 mt-1">
+                            文件：<span className="font-mono">{pendingImportFile?.name}</span>
+                            {pendingImportFile && ` (${(pendingImportFile.size / 1024).toFixed(1)} KB)`}
+                          </p>
+                          <p className="text-xs text-red-600 mt-1 font-medium">此操作会清空现有数据后导入，不可撤销！</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          disabled={importing}
+                          onClick={async () => {
+                            if (!pendingImportFile) return;
+                            setImporting(true);
+                            setDataMessage(null);
+                            try {
+                              const text = await pendingImportFile.text();
+                              const jsonData = JSON.parse(text);
+                              await api.importData(jsonData);
+                              setDataMessage({ type: 'success', text: '数据导入成功！' });
+                              setConfirmImport(false);
+                              setPendingImportFile(null);
+                            } catch (err) {
+                              setDataMessage({ type: 'error', text: `导入失败：${err instanceof Error ? err.message : '文件格式错误'}` });
+                            }
+                            setImporting(false);
+                          }}
+                        >
+                          {importing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+                          确认导入
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => { setConfirmImport(false); setPendingImportFile(null); }}>
+                          取消
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Clear / Initialize */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Trash2 className="h-4 w-4 text-red-600" />
+                    清空数据 / 初始化
+                  </CardTitle>
+                  <p className="text-xs text-slate-500">
+                    清除所有业务数据（导航、事项、任务、文档、日志等），恢复到初始状态。用户账号不会被删除。
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  {!confirmClear ? (
+                    <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => setConfirmClear(true)}>
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      清空所有业务数据
+                    </Button>
+                  ) : (
+                    <div className="space-y-3 p-4 border border-red-200 bg-red-50 rounded-lg">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5 shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium text-red-800">危险操作确认</p>
+                          <p className="text-xs text-red-700 mt-1">
+                            此操作将永久删除所有业务数据，包括：导航、法务事项、任务、文档关联、操作日志、回收站记录。
+                          </p>
+                          <p className="text-xs text-red-600 mt-1 font-bold">此操作不可撤销！建议先导出备份。</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          disabled={clearing}
+                          onClick={async () => {
+                            setClearing(true);
+                            setDataMessage(null);
+                            try {
+                              await api.clearData();
+                              setDataMessage({ type: 'success', text: '所有业务数据已清空（用户账号已保留）。' });
+                              setConfirmClear(false);
+                            } catch (err) {
+                              setDataMessage({ type: 'error', text: `清空失败：${err instanceof Error ? err.message : '未知错误'}` });
+                            }
+                            setClearing(false);
+                          }}
+                        >
+                          {clearing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                          确认清空
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => setConfirmClear(false)}>
+                          取消
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           )}
         </>
       )}

@@ -26,6 +26,20 @@ export const profiles = pgTable(
   ]
 );
 
+// ==================== Allowed Emails (Whitelist) ====================
+export const allowed_emails = pgTable(
+  "allowed_emails",
+  {
+    id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+    email: varchar("email", { length: 255 }).notNull().unique(),
+    created_by: varchar("created_by", { length: 36 }).references(() => profiles.id),
+    created_at: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("allowed_emails_email_idx").on(table.email),
+  ]
+);
+
 // ==================== Navigation Categories ====================
 export const nav_categories = pgTable(
   "nav_categories",

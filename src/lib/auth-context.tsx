@@ -114,6 +114,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signUp = async (email: string, password: string, fullName: string) => {
+    // Check whitelist before allowing registration
+    try {
+      const checkRes = await fetch(`/api/auth/allowed-emails?email=${encodeURIComponent(email)}`);
+      if (checkRes.ok) {
+        const checkData = await checkRes.json();
+        if (!checkData.allowed) {
+          return { error: '该邮箱不在允许注册的白名单中，请联系管理员添加' };
+        }
+      }
+    } catch {
+      return { error: '白名单校验失败，请稍后重试' };
+    }
+
     const supabase = await getSupabaseBrowserClientWithRetry();
     const { data, error } = await supabase.auth.signUp({
       email,

@@ -18,13 +18,20 @@ export async function GET(request: NextRequest) {
       .maybeSingle();
 
     if (!profile) {
+      // Check if this is the first user - make them admin
+      const { count } = await dbClient
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
+
+      const isFirstUser = (count ?? 0) === 0;
+
       const { data: newProfile, error: createError } = await dbClient
         .from('profiles')
         .insert({
           id: auth.userId,
           email: auth.email,
           full_name: auth.fullName,
-          role: 'member',
+          role: isFirstUser ? 'admin' : 'member',
         })
         .select()
         .single();

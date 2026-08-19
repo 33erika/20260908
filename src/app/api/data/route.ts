@@ -143,47 +143,48 @@ async function handleClear(
 
 async function handleImport(
   client: ReturnType<typeof getSupabaseClient>,
-  importData: Record<string, unknown[]>,
+  importData: Record<string, unknown>,
   _userId: string
 ) {
   if (!importData || !importData.tables) {
     return NextResponse.json({ error: 'Invalid import data format. Expected { tables: {...} }' }, { status: 400 });
   }
 
-  const tables = importData.tables;
+  const tables = importData.tables as Record<string, Array<Record<string, unknown>>>;
   const stats: Record<string, number> = {};
 
   try {
     // Import in dependency order (parents first)
     for (const table of TABLES_IN_ORDER) {
-      const rows = tables[table];
+      const tableName: string = table;
+      const rows = tables[tableName];
       if (!rows || !Array.isArray(rows) || rows.length === 0) {
-        stats[table] = 0;
+        stats[tableName] = 0;
         continue;
       }
 
       // Skip profiles - don't overwrite existing user accounts
-      if (table === 'profiles') {
-        stats[table] = rows.length;
+      if (tableName === 'profiles') {
+        stats[tableName] = rows.length;
         continue;
       }
 
       // Clear existing data first for this table
-      await client.from(table).delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await client.from(tableName).delete().neq('id', '00000000-0000-0000-0000-000000000000');
 
       // Insert in batches of 100 to avoid payload limits
       const batchSize = 100;
       for (let i = 0; i < rows.length; i += batchSize) {
         const batch = rows.slice(i, i + batchSize);
-        const { error } = await client.from(table).insert(batch);
+        const { error } = await client.from(tableName).insert(batch);
         if (error) {
           return NextResponse.json(
-            { error: `Failed to import ${table} (batch ${Math.floor(i / batchSize) + 1}): ${error.message}` },
+            { error: `Failed to import ${tableName} (batch ${Math.floor(i / batchSize) + 1}): ${error.message}` },
             { status: 500 }
           );
         }
       }
-      stats[table] = rows.length;
+      stats[tableName] = rows.length;
     }
 
     return NextResponse.json({

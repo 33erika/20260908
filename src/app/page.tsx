@@ -7,7 +7,7 @@ import Link from 'next/link';
 import {
   Briefcase, CheckSquare, Clock, AlertTriangle,
   TrendingUp, Calendar, ArrowRight, ExternalLink, Loader2,
-  MessageSquare
+  MessageSquare, Timer
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -33,6 +33,10 @@ interface ConsultationSummary {
   pending: number; processing: number; replied: number; closed: number;
   latest: { id: string; title: string; submitter: string; submit_time: string; timeAgo: string; url: string } | null;
 }
+interface Deadline {
+  id: string; deadline_type: string; deadline_date: string; description: string | null; status: string;
+  case_id: string;
+}
 
 export default function HomePage() {
   const { api } = useApi();
@@ -43,6 +47,7 @@ export default function HomePage() {
   const [cases, setCases] = useState<CaseItem[]>([]);
   const [navLinks, setNavLinks] = useState<NavItem[]>([]);
   const [consultationSummary, setConsultationSummary] = useState<ConsultationSummary | null>(null);
+  const [deadlines, setDeadlines] = useState<Deadline[]>([]);
   const [stats, setStats] = useState({ caseCount: 0, monthNew: 0, monthClosed: 0, overdue: 0, taskCount: 0 });
 
   useEffect(() => {
@@ -57,16 +62,18 @@ export default function HomePage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [tasksRes, casesRes, navRes, dashRes, consultationRes] = await Promise.all([
+      const [tasksRes, casesRes, navRes, dashRes, consultationRes, deadlinesRes] = await Promise.all([
         api.getTasks({ owner: 'me' }),
         api.getCases(),
         api.getNavCategories(),
         api.getDashboard(),
         api.getConsultations(),
+        api.getCaseDeadlines({ upcoming: 'true' }),
       ]);
       setTasks(tasksRes.data || []);
       setCases(casesRes.data || []);
       setConsultationSummary(consultationRes.data || null);
+      setDeadlines(deadlinesRes.data || []);
       setStats({
         caseCount: dashRes.data?.cases?.total || 0,
         monthNew: dashRes.data?.cases?.monthNew || 0,

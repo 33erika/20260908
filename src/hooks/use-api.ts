@@ -129,6 +129,12 @@ function createApi() {
       return fetchApi(`/api/smart-input/match?${params.toString()}`);
     },
     smartInputImport: (body: Record<string, unknown>) => fetchApi('/api/smart-input/import', { method: 'POST', body: JSON.stringify(body) }),
+
+    // Allowed Emails (Whitelist)
+    checkAllowedEmail: (email: string) => fetchApi(`/api/auth/allowed-emails?email=${encodeURIComponent(email)}`),
+    getAllowedEmails: () => fetchApi('/api/auth/allowed-emails'),
+    addAllowedEmail: (email: string) => fetchApi('/api/auth/allowed-emails', { method: 'POST', body: JSON.stringify({ email }) }),
+    removeAllowedEmail: (id: string) => fetchApi(`/api/auth/allowed-emails?id=${id}`, { method: 'DELETE' }),
   };
 }
 

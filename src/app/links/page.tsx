@@ -40,6 +40,22 @@ export default function LinksPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  // 自动清理无效分类（名称包含 file:// 等本地路径）
+  useEffect(() => {
+    const cleanup = async () => {
+      const invalidCats = categories.filter(c =>
+        c.name.startsWith('file://') || c.name.startsWith('C:\\\\') || c.name.startsWith('/Users/')
+      );
+      for (const cat of invalidCats) {
+        try {
+          await api.deleteNavItem({ type: 'category', id: cat.id });
+        } catch { /* silent */ }
+      }
+      if (invalidCats.length > 0) loadData();
+    };
+    if (categories.length > 0) cleanup();
+  }, [categories, api, loadData]);
+
   const saveCategory = async () => {
     if (!catName.trim()) return;
     try {

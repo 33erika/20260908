@@ -21,6 +21,14 @@ function getMockConsultations() {
       replied: 12,
       closed: 28,
       total: 48,
+      latest: {
+        id: 'c001',
+        title: '劳动合同解除咨询',
+        submitter: '张三',
+        submit_time: '2026-08-19T10:30:00Z',
+        timeAgo: '2 小时前',
+        url: 'https://tqrrx73295.coze.site/consultations/c001',
+      },
     },
     list: [
       {

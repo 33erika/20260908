@@ -67,12 +67,12 @@ export default function HomePage() {
         api.getCases(),
         api.getNavCategories(),
         api.getDashboard(),
-        api.getConsultations(),
+        api.getConsultations({ action: 'summary' }),
         api.getCaseDeadlines({ upcoming: 'true' }),
       ]);
       setTasks(tasksRes.data || []);
       setCases(casesRes.data || []);
-      setConsultationSummary(consultationRes.data || null);
+      setConsultationSummary(consultationRes.summary || null);
       setDeadlines(deadlinesRes.data || []);
       setStats({
         caseCount: dashRes.data?.cases?.total || 0,

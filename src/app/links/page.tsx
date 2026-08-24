@@ -73,10 +73,10 @@ function SortableCategory({
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const sensors = useMemo(() => useSensors(
+  const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  ), []);
+  );
 
   const links = (category.nav_links || []).sort((a: NavLink, b: NavLink) => a.sort_order - b.sort_order);
 
@@ -232,10 +232,10 @@ export default function LinksPage() {
   const [catName, setCatName] = useState('');
   const [linkForm, setLinkForm] = useState({ name: '', url: '', icon: '', description: '' });
 
-  const sensors = useMemo(() => useSensors(
+  const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  ), []);
+  );
 
   const loadData = useCallback(async () => {
     setLoading(true);

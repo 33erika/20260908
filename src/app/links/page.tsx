@@ -96,22 +96,40 @@ export default function LinksPage() {
           <h1 className="text-2xl font-bold text-slate-900">法务导航</h1>
           <p className="text-sm text-slate-500 mt-1">管理常用工具和网站入口</p>
         </div>
-        <Dialog open={catDialogOpen} onOpenChange={setCatDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => { setEditingCat(null); setCatName(''); }}>
-              <Plus className="h-4 w-4 mr-1" /> 新增分类
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{editingCat ? '编辑分类' : '新增分类'}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 pt-2">
-              <Input placeholder="分类名称" value={catName} onChange={e => setCatName(e.target.value)} />
-              <Button onClick={saveCategory} className="w-full">保存</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={async () => {
+            try {
+              const res = await fetch('/api/nav/cleanup', { method: 'POST', headers: { 'x-session': localStorage.getItem('sb-access-token') || '' } });
+              const data = await res.json();
+              if (data.success) {
+                alert(data.message);
+                loadData();
+              } else {
+                alert(`清理失败：${data.error}`);
+              }
+            } catch (err) {
+              alert(`清理失败：${err}`);
+            }
+          }}>
+            清理无效分类
+          </Button>
+          <Dialog open={catDialogOpen} onOpenChange={setCatDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => { setEditingCat(null); setCatName(''); }}>
+                <Plus className="h-4 w-4 mr-1" /> 新增分类
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{editingCat ? '编辑分类' : '新增分类'}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-2">
+                <Input placeholder="分类名称" value={catName} onChange={e => setCatName(e.target.value)} />
+                <Button onClick={saveCategory} className="w-full">保存</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {categories.length === 0 ? (

@@ -69,7 +69,13 @@ function createApi() {
     // Consultations (法律咨询)
     getConsultations: (params?: Record<string, string>) => {
       const qs = params ? '?' + new URLSearchParams(params).toString() : '';
-      return fetchApi(`/api/consultations${qs}`);
+      // 从 localStorage 读取咨询系统 API 地址
+      const apiUrl = typeof window !== 'undefined' ? localStorage.getItem('consultation_api_url') : null;
+      const headers: Record<string, string> = {};
+      if (apiUrl) {
+        headers['x-consultation-api-url'] = apiUrl;
+      }
+      return fetchApi(`/api/consultations${qs}`, { method: 'GET', headers });
     },
 
     // Documents

@@ -10,7 +10,7 @@ import { NextResponse } from 'next/server';
  */
 
 // 默认外部咨询系统配置
-const DEFAULT_CONSULTATION_API_URL = 'https://x88dq72729.coze.site';
+const DEFAULT_CONSULTATION_API_URL = 'https://ef7aecc6-cfbf-443c-9f68-7a4025e195dd.dev.coze.site';
 const API_KEY = 'sk_x88dq72729_coze_site_2024';
 
 export async function GET(request: Request) {
@@ -28,8 +28,8 @@ export async function GET(request: Request) {
   try {
     // 构建请求端点
     const endpoint = action === 'summary'
-      ? `${consultationApiUrl}/api/consultations?action=summary`
-      : `${consultationApiUrl}/api/consultations?status=${status || ''}&limit=${limit}`;
+      ? `${consultationApiUrl}/api/public/dashboard-stats`
+      : `${consultationApiUrl}/api/public/dashboard-stats?status=${status || ''}&limit=${limit}`;
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 秒超时
@@ -54,7 +54,22 @@ export async function GET(request: Request) {
     const data = await response.json();
 
     if (action === 'summary') {
-      return NextResponse.json({ summary: data.summary || data });
+      // 转换外部 API 数据格式为页面期望的格式
+      const externalData = data.data || data;
+      const pending = externalData.pending || 0;
+      const processing = externalData.processing || 0;
+      const replied = externalData.open || 0;
+      const total = externalData.total || 0;
+      const closed = Math.max(0, total - pending - processing - replied);
+      
+      return NextResponse.json({
+        summary: {
+          pending,
+          processing,
+          replied,
+          closed,
+        }
+      });
     }
 
     return NextResponse.json({ data: data.data || data.list || data });

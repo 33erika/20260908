@@ -13,6 +13,9 @@ import {
   ExternalLink,
   Settings,
   Inbox,
+  Clock,
+  CheckCircle,
+  XCircle,
 } from 'lucide-react';
 
 interface ConsultationSummary {
@@ -34,6 +37,8 @@ interface Consultation {
   submitted_at: string;
   url?: string;
 }
+
+const CONSULTATION_SYSTEM_URL = 'https://x88dq72729.coze.site';
 
 export default function ConsultationsPage() {
   const { api } = useApi();
@@ -72,22 +77,35 @@ export default function ConsultationsPage() {
     loadConsultations();
   }, [filter]);
 
+  // 初始化时从 localStorage 读取 API 地址
+  useEffect(() => {
+    const savedUrl = localStorage.getItem('consultation_api_url');
+    if (savedUrl) {
+      setApiUrl(savedUrl);
+    }
+  }, []);
+
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, { variant: 'default' | 'secondary' | 'destructive'; label: string }> = {
-      pending: { variant: 'destructive', label: '待处理' },
-      processing: { variant: 'secondary', label: '处理中' },
-      replied: { variant: 'default', label: '已回复' },
-      closed: { variant: 'secondary', label: '已结案' },
+    const variants: Record<string, { variant: 'default' | 'secondary' | 'destructive'; label: string; icon: React.ReactNode }> = {
+      pending: { variant: 'destructive', label: '待处理', icon: <AlertCircle className="h-3 w-3" /> },
+      processing: { variant: 'default', label: '处理中', icon: <Clock className="h-3 w-3" /> },
+      replied: { variant: 'secondary', label: '已回复', icon: <CheckCircle className="h-3 w-3" /> },
+      closed: { variant: 'secondary', label: '已结案', icon: <XCircle className="h-3 w-3" /> },
     };
     const config = variants[status] || variants.pending;
-    return <Badge variant={config.variant}>{config.label}</Badge>;
+    return (
+      <Badge variant={config.variant} className="gap-1">
+        {config.icon}
+        {config.label}
+      </Badge>
+    );
   };
 
   const getPriorityBadge = (priority: string) => {
     const variants: Record<string, { variant: 'default' | 'secondary' | 'destructive'; label: string }> = {
       urgent: { variant: 'destructive', label: '紧急' },
-      high: { variant: 'secondary', label: '高' },
-      normal: { variant: 'default', label: '普通' },
+      high: { variant: 'default', label: '高' },
+      normal: { variant: 'secondary', label: '普通' },
       low: { variant: 'secondary', label: '低' },
     };
     const config = variants[priority] || variants.normal;
@@ -100,9 +118,17 @@ export default function ConsultationsPage() {
       window.open(consultation.url, '_blank');
     } else {
       // 否则跳转到咨询系统
-      window.open('https://tqrrx73295.coze.site', '_blank');
+      window.open(CONSULTATION_SYSTEM_URL, '_blank');
     }
   };
+
+  const filterButtons = [
+    { value: '', label: '全部' },
+    { value: 'pending', label: '待处理' },
+    { value: 'processing', label: '处理中' },
+    { value: 'replied', label: '已回复' },
+    { value: 'closed', label: '已结案' },
+  ];
 
   return (
     <div className="space-y-6">
@@ -127,7 +153,7 @@ export default function ConsultationsPage() {
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             刷新
           </Button>
-          <Button size="sm" onClick={() => window.open('https://tqrrx73295.coze.site', '_blank')}>
+          <Button size="sm" onClick={() => window.open(CONSULTATION_SYSTEM_URL, '_blank')}>
             <ExternalLink className="h-4 w-4 mr-2" />
             打开咨询系统
           </Button>
@@ -145,17 +171,23 @@ export default function ConsultationsPage() {
               <Label htmlFor="apiUrl">咨询系统 API 地址</Label>
               <Input
                 id="apiUrl"
-                placeholder="https://your-consultation-system.com/api"
+                placeholder="https://your-consultation-system.com"
                 value={apiUrl}
                 onChange={(e) => setApiUrl(e.target.value)}
               />
               <p className="text-sm text-muted-foreground">
-                配置后工作台将自动拉取咨询系统的待办数据。留空则显示空状态。
+                配置后工作台将自动拉取咨询系统的待办数据。留空则使用默认地址。
+                <br />
+                默认地址：{CONSULTATION_SYSTEM_URL}
               </p>
             </div>
             <div className="flex gap-2">
               <Button onClick={() => {
-                localStorage.setItem('consultation_api_url', apiUrl);
+                if (apiUrl) {
+                  localStorage.setItem('consultation_api_url', apiUrl);
+                } else {
+                  localStorage.removeItem('consultation_api_url');
+                }
                 setShowSettings(false);
                 loadConsultations();
               }}>
@@ -171,7 +203,7 @@ export default function ConsultationsPage() {
 
       {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-4">
-        <Card>
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setFilter('pending')}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">待处理</CardTitle>
             <AlertCircle className="h-4 w-4 text-amber-500" />
@@ -180,16 +212,16 @@ export default function ConsultationsPage() {
             <div className="text-2xl font-bold text-amber-600">{summary.pending}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setFilter('processing')}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">处理中</CardTitle>
-            <RefreshCw className="h-4 w-4 text-blue-500" />
+            <Clock className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">{summary.processing}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setFilter('replied')}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">已回复</CardTitle>
             <Inbox className="h-4 w-4 text-green-500" />
@@ -198,128 +230,92 @@ export default function ConsultationsPage() {
             <div className="text-2xl font-bold text-green-600">{summary.replied}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setFilter('closed')}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">已结案</CardTitle>
-            <Inbox className="h-4 w-4 text-gray-500" />
+            <CheckCircle className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-600">{summary.closed}</div>
+            <div className="text-2xl font-bold text-slate-600">{summary.closed}</div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Error State */}
-      {error && (
-        <Card className="border-amber-200 bg-amber-50">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2 text-amber-800">
-              <AlertCircle className="h-5 w-5" />
-              <p>{error}</p>
-            </div>
-            <p className="mt-2 text-sm text-amber-700">
-              请点击右上角"API 配置"按钮，配置咨询系统的 API 地址。
-            </p>
-          </CardContent>
-        </Card>
-      )}
+      {/* Filter Buttons */}
+      <div className="flex items-center gap-2">
+        {filterButtons.map(btn => (
+          <Button
+            key={btn.value}
+            variant={filter === btn.value ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setFilter(btn.value)}
+          >
+            {btn.label}
+          </Button>
+        ))}
+      </div>
 
-      {/* Empty State */}
-      {!loading && !error && consultations.length === 0 && (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center py-12">
-              <Inbox className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">暂无咨询数据</h3>
-              <p className="text-muted-foreground mb-4">
-                咨询系统 API 未配置或暂无待办咨询
-              </p>
-              <Button onClick={() => setShowSettings(true)}>
-                <Settings className="h-4 w-4 mr-2" />
-                配置 API 地址
-              </Button>
+      {/* Error Message */}
+      {error && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 text-red-600">
+              <AlertCircle className="h-4 w-4" />
+              <span className="text-sm">{error}</span>
             </div>
           </CardContent>
         </Card>
       )}
 
       {/* Consultation List */}
-      {!loading && !error && consultations.length > 0 && (
-        <>
-          {/* Filter Tabs */}
-          <div className="flex gap-2">
-            <Button
-              variant={filter === '' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setFilter('')}
+      {loading ? (
+        <div className="flex justify-center py-12">
+          <RefreshCw className="h-6 w-6 animate-spin text-blue-600" />
+        </div>
+      ) : consultations.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center text-slate-400">
+            <Inbox className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>暂无咨询数据</p>
+            <p className="text-sm mt-2">请检查 API 配置或点击"打开咨询系统"查看</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {consultations.map(consultation => (
+            <Card
+              key={consultation.id}
+              className="cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => handleOpenConsultation(consultation)}
             >
-              全部
-            </Button>
-            <Button
-              variant={filter === 'pending' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setFilter('pending')}
-            >
-              待处理 ({summary.pending})
-            </Button>
-            <Button
-              variant={filter === 'processing' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setFilter('processing')}
-            >
-              处理中 ({summary.processing})
-            </Button>
-            <Button
-              variant={filter === 'replied' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setFilter('replied')}
-            >
-              已回复 ({summary.replied})
-            </Button>
-            <Button
-              variant={filter === 'closed' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setFilter('closed')}
-            >
-              已结案 ({summary.closed})
-            </Button>
-          </div>
-
-          {/* List */}
-          <div className="space-y-4">
-            {consultations.map((consultation) => (
-              <Card
-                key={consultation.id}
-                className="cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => handleOpenConsultation(consultation)}
-              >
-                <CardContent className="pt-6">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-2 flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-lg">{consultation.title}</h3>
-                        {getPriorityBadge(consultation.priority)}
-                      </div>
-                      <p className="text-muted-foreground text-sm">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="text-base font-semibold text-slate-900 truncate">
+                        {consultation.title}
+                      </h3>
+                      {getStatusBadge(consultation.status)}
+                      {getPriorityBadge(consultation.priority)}
+                    </div>
+                    <div className="flex items-center gap-4 text-sm text-slate-500">
+                      <span>{consultation.submitter_name}</span>
+                      <span>{consultation.submitter_dept}</span>
+                      <span>{consultation.category}</span>
+                      <span>{new Date(consultation.submitted_at).toLocaleDateString('zh-CN')}</span>
+                    </div>
+                    {consultation.summary && (
+                      <p className="text-sm text-slate-600 mt-2 line-clamp-2">
                         {consultation.summary}
                       </p>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span>咨询人：{consultation.submitter_name}</span>
-                        <span>部门：{consultation.submitter_dept}</span>
-                        <span>分类：{consultation.category}</span>
-                        <span>提交时间：{new Date(consultation.submitted_at).toLocaleString('zh-CN')}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 ml-4">
-                      {getStatusBadge(consultation.status)}
-                      <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                    </div>
+                    )}
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </>
+                  <ExternalLink className="h-4 w-4 text-slate-400 shrink-0" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       )}
     </div>
   );

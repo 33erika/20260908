@@ -48,7 +48,7 @@ export default function LinksPage() {
       );
       for (const cat of invalidCats) {
         try {
-          await api.deleteNavItem({ type: 'category', id: cat.id });
+          await api.deleteNavItem('category', cat.id);
         } catch { /* silent */ }
       }
       if (invalidCats.length > 0) loadData();

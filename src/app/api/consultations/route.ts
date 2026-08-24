@@ -31,14 +31,20 @@ export async function GET(request: Request) {
       ? `${consultationApiUrl}/api/consultations?action=summary`
       : `${consultationApiUrl}/api/consultations?status=${status || ''}&limit=${limit}`;
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 秒超时
+
     const response = await fetch(endpoint, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
         'X-API-Key': API_KEY,
       },
+      signal: controller.signal,
       next: { revalidate: 60 }, // 60 秒缓存
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       console.error(`Consultation API returned ${response.status}: ${endpoint}`);

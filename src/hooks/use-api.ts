@@ -145,6 +145,14 @@ function createApi() {
     // Admin: Create user account
     createUser: (email: string, fullName: string, password: string, role?: string) =>
       fetchApi('/api/auth/create-user', { method: 'POST', body: JSON.stringify({ email, fullName, password, role }) }),
+
+    // DingTalk
+    getDingTalkNotifyConfig: () => fetchApi('/api/dingtalk-notify'),
+    sendDingTalkNotify: (body: Record<string, unknown>) =>
+      fetchApi('/api/dingtalk-notify', { method: 'POST', body: JSON.stringify(body) }),
+    getDingTalkSettings: () => fetchApi('/api/settings/dingtalk'),
+    saveDingTalkSettings: (body: Record<string, unknown>) =>
+      fetchApi('/api/settings/dingtalk', { method: 'POST', body: JSON.stringify(body) }),
   };
 }
 

@@ -12,7 +12,7 @@
 - **UI 组件**: shadcn/ui (基于 Radix UI)
 - **Styling**: Tailwind CSS 4
 - **Database**: Supabase (PostgreSQL)
-- **Auth**: Supabase Auth (邮箱登录)
+- **Auth**: Supabase Auth (邮箱登录 + 钉钉扫码登录)
 
 ## 目录结构
 
@@ -34,7 +34,10 @@
 │   │   │   ├── case-progress/  # 案件进展时间线
 │   │   │   ├── reminder-rules/ # 提醒规则配置
 │   │   │   ├── smart-input/    # 智能录入（parse/match/import）
-│   │   │   └── profiles/       # 用户管理
+│   │   │   ├── profiles/       # 用户管理
+│   │   │   ├── auth/dingtalk/  # 钉钉登录（config/callback）
+│   │   │   ├── dingtalk-notify/# 钉钉机器人通知
+│   │   │   └── settings/dingtalk/ # 钉钉集成配置
 │   │   ├── login/              # 登录页
 │   │   ├── links/              # 法务导航页
 │   │   ├── todos/              # 待办与提醒页
@@ -43,7 +46,8 @@
 │   │   ├── dashboard/          # 数据汇总页
 │   │   ├── search/             # 搜索页
 │   │   ├── recycle/            # 回收站页
-│   │   └── settings/           # 系统设置页
+│   │   ├── settings/           # 系统设置页
+│   │   └── auth/dingtalk/      # 钉钉登录回调页
 │   ├── components/             # 共享组件
 │   │   ├── ui/                 # shadcn/ui 组件
 │   │   ├── app-shell.tsx       # 应用外壳
@@ -88,9 +92,30 @@ pnpm start          # 启动生产服务
 ## 认证说明
 
 - 使用 Supabase Auth 邮箱登录
+- 支持钉钉扫码登录（需在系统设置中配置）
 - 前端通过 `x-session` header 传递 access_token
 - 后端通过 `verifyAuth()` 验证 token
 - 中间件保护需登录的路由
+
+## 钉钉集成
+
+### 钉钉扫码登录
+- 配置路径：系统设置 → 钉钉集成 → 钉钉扫码登录
+- 需要在钉钉开放平台创建企业内部应用，获取 Client ID (AppKey) 和 Client Secret (AppSecret)
+- 登录流程：用户点击钉钉登录 → 跳转钉钉授权页 → 回调 `/api/auth/dingtalk/callback` → 获取用户信息 → 匹配本地用户 → 创建 Supabase Session → 跳转首页
+- 用户匹配逻辑：优先按 `dingtalk_user_id` 匹配，其次按 `email` 匹配
+
+### 钉钉群机器人通知
+- 配置路径：系统设置 → 钉钉集成 → 钉钉群机器人通知
+- 支持 Webhook URL 和加签密钥配置
+- 通知场景：待办页面可一键发送任务提醒到钉钉群
+- 通知内容：包含逾期任务、今日到期任务、待处理任务汇总
+
+### 相关 API
+- `GET /api/auth/dingtalk/config` - 获取钉钉登录配置（公开）
+- `GET /api/auth/dingtalk/callback` - 钉钉 OAuth 回调
+- `GET/POST /api/dingtalk-notify` - 钉钉通知（需认证）
+- `GET/POST /api/settings/dingtalk` - 钉钉配置管理（需管理员权限）
 
 ## 注意事项
 

@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Pencil, Trash2, Loader2, Settings, Users, FileText, Clock, Database, Download, Upload, AlertTriangle, CheckCircle2, Bell, ShieldCheck } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, Settings, Users, FileText, Clock, Database, Download, Upload, AlertTriangle, CheckCircle2, Bell, ShieldCheck, MessageSquare, Save, Eye, EyeOff, Send, TestTube } from 'lucide-react';
 
 interface CaseType { id: string; name: string; description: string | null; case_type_fields: FieldDef[]; case_stages: StageDef[]; }
 interface FieldDef { id: string; field_name: string; field_type: string; is_required: boolean; is_visible: boolean; options: string[] | null; sort_order: number; }
@@ -22,7 +22,7 @@ interface AllowedEmail { id: string; email: string; created_at: string; created_
 export default function SettingsPage() {
   const { api } = useApi();
   const { profile } = useAuth();
-  const [activeTab, setActiveTab] = useState<'types' | 'users' | 'whitelist' | 'logs' | 'data' | 'reminders'>('types');
+  const [activeTab, setActiveTab] = useState<'types' | 'users' | 'whitelist' | 'logs' | 'data' | 'reminders' | 'dingtalk'>('types');
   const [caseTypes, setCaseTypes] = useState<CaseType[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [logs, setLogs] = useState<OpLog[]>([]);
@@ -46,6 +46,19 @@ export default function SettingsPage() {
   const [confirmImport, setConfirmImport] = useState(false);
   const [pendingImportFile, setPendingImportFile] = useState<File | null>(null);
 
+  // DingTalk settings state
+  const [dtLoginEnabled, setDtLoginEnabled] = useState(false);
+  const [dtClientId, setDtClientId] = useState('');
+  const [dtClientSecret, setDtClientSecret] = useState('');
+  const [dtNotifyEnabled, setDtNotifyEnabled] = useState(false);
+  const [dtWebhookUrl, setDtWebhookUrl] = useState('');
+  const [dtWebhookSecret, setDtWebhookSecret] = useState('');
+  const [dtSaving, setDtSaving] = useState(false);
+  const [dtTesting, setDtTesting] = useState(false);
+  const [dtMessage, setDtMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [dtShowSecret, setDtShowSecret] = useState(false);
+  const [dtShowWebhookSecret, setDtShowWebhookSecret] = useState(false);
+
   // Dialogs
   const [typeDialogOpen, setTypeDialogOpen] = useState(false);
   const [fieldDialogOpen, setFieldDialogOpen] = useState(false);
@@ -59,15 +72,25 @@ export default function SettingsPage() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [typesRes, profilesRes, logsRes, rulesRes, whitelistRes] = await Promise.all([
+      const [typesRes, profilesRes, logsRes, rulesRes, whitelistRes, dtSettingsRes] = await Promise.all([
         api.getCaseTypes(), api.getProfiles(), api.getOperationLogs({ limit: '30' }),
-        api.getReminderRules(), api.getAllowedEmails(),
+        api.getReminderRules(), api.getAllowedEmails(), api.getDingTalkSettings(),
       ]);
       setCaseTypes(typesRes.data || []);
       setProfiles(profilesRes.data || []);
       setLogs(logsRes.data || []);
       setReminderRules(rulesRes.data || []);
       setAllowedEmails(whitelistRes.data || []);
+      // DingTalk settings
+      if (dtSettingsRes.data) {
+        const dt = dtSettingsRes.data;
+        setDtLoginEnabled(dt.loginEnabled || false);
+        setDtClientId(dt.clientId || '');
+        setDtClientSecret(dt.clientSecret || '');
+        setDtNotifyEnabled(dt.notifyEnabled || false);
+        setDtWebhookUrl(dt.webhookUrl || '');
+        setDtWebhookSecret(dt.webhookSecret || '');
+      }
     } catch { /* silent */ }
     setLoading(false);
   }, [api]);
@@ -131,6 +154,7 @@ export default function SettingsPage() {
     { key: 'users' as const, label: '用户管理', icon: Users },
     { key: 'whitelist' as const, label: '注册白名单', icon: ShieldCheck },
     { key: 'reminders' as const, label: '提醒规则', icon: Bell },
+    { key: 'dingtalk' as const, label: '钉钉集成', icon: MessageSquare },
     { key: 'logs' as const, label: '操作记录', icon: Clock },
     { key: 'data' as const, label: '数据管理', icon: Database },
   ];
@@ -403,6 +427,205 @@ export default function SettingsPage() {
                 )}
               </CardContent>
             </Card>
+          )}
+
+          {/* DingTalk Integration Tab */}
+          {activeTab === 'dingtalk' && (
+            <div className="space-y-6">
+              {/* Status message */}
+              {dtMessage && (
+                <div className={`flex items-center gap-2 p-3 rounded-lg text-sm ${
+                  dtMessage.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
+                }`}>
+                  {dtMessage.type === 'success' ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+                  {dtMessage.text}
+                </div>
+              )}
+
+              {/* DingTalk Login Config */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <svg viewBox="0 0 1024 1024" className="h-5 w-5 text-blue-500" fill="currentColor">
+                        <path d="M612.8 414.4c-4.8 3.2-9.6 4.8-14.4 6.4-44.8 19.2-92.8 32-140.8 38.4-3.2 0-4.8 1.6-3.2 4.8 3.2 9.6 8 19.2 12.8 28.8 20.8 41.6 51.2 76.8 86.4 107.2 32 27.2 67.2 51.2 105.6 68.8 3.2 1.6 6.4 3.2 9.6 4.8 1.6 0 3.2-1.6 3.2-3.2 1.6-8 4.8-16 6.4-24 12.8-56 16-112 11.2-169.6-1.6-14.4-3.2-28.8-6.4-43.2 0-3.2-1.6-4.8-4.8-3.2-22.4 9.6-44.8 17.6-67.2 24-1.6 0-1.6 1.6 1.6 4.8zM528 256c-139.2 0-252.8 91.2-252.8 204.8S388.8 665.6 528 665.6 780.8 574.4 780.8 460.8 667.2 256 528 256z" />
+                        <path d="M512 64C264.8 64 64 264.8 64 512s200.8 448 448 448 448-200.8 448-448S759.2 64 512 64z m0 832c-212.8 0-384-171.2-384-384S299.2 128 512 128s384 171.2 384 384-171.2 384-384 384z" />
+                      </svg>
+                      钉钉扫码登录
+                    </CardTitle>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <span className="text-xs text-slate-500">{dtLoginEnabled ? '已启用' : '未启用'}</span>
+                      <button
+                        type="button"
+                        onClick={() => setDtLoginEnabled(!dtLoginEnabled)}
+                        className={`relative w-10 h-5 rounded-full transition-colors ${dtLoginEnabled ? 'bg-indigo-600' : 'bg-slate-300'}`}
+                      >
+                        <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${dtLoginEnabled ? 'left-5' : 'left-0.5'}`} />
+                      </button>
+                    </label>
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    配置钉钉应用凭证，启用后用户可通过钉钉扫码登录系统。需在钉钉开放平台创建企业内部应用。
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">Client ID (AppKey)</label>
+                    <Input
+                      placeholder="dingxxxxxxxx"
+                      value={dtClientId}
+                      onChange={(e) => setDtClientId(e.target.value)}
+                      className="h-10"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">Client Secret (AppSecret)</label>
+                    <div className="relative">
+                      <Input
+                        type={dtShowSecret ? 'text' : 'password'}
+                        placeholder="请输入 AppSecret"
+                        value={dtClientSecret}
+                        onChange={(e) => setDtClientSecret(e.target.value)}
+                        className="h-10 pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setDtShowSecret(!dtShowSecret)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600"
+                      >
+                        {dtShowSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="p-3 bg-blue-50 rounded-lg">
+                    <p className="text-xs text-blue-700 font-medium mb-1">配置说明：</p>
+                    <ol className="text-xs text-blue-600 space-y-1 list-decimal list-inside">
+                      <li>登录 <a href="https://open-dev.dingtalk.com" target="_blank" rel="noopener noreferrer" className="underline">钉钉开放平台</a>，创建企业内部应用</li>
+                      <li>在应用详情页「凭证与基础信息」中获取 Client ID 和 Client Secret</li>
+                      <li>在「登录与分享」中添加回调地址</li>
+                      <li>申请权限点：Contact.User.mobile 和 Contact.User.Read</li>
+                    </ol>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* DingTalk Notification Config */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Bell className="h-4 w-4 text-amber-600" />
+                      钉钉群机器人通知
+                    </CardTitle>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <span className="text-xs text-slate-500">{dtNotifyEnabled ? '已启用' : '未启用'}</span>
+                      <button
+                        type="button"
+                        onClick={() => setDtNotifyEnabled(!dtNotifyEnabled)}
+                        className={`relative w-10 h-5 rounded-full transition-colors ${dtNotifyEnabled ? 'bg-indigo-600' : 'bg-slate-300'}`}
+                      >
+                        <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${dtNotifyEnabled ? 'left-5' : 'left-0.5'}`} />
+                      </button>
+                    </label>
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    配置钉钉群机器人 Webhook，用于向钉钉群发送任务提醒、期限到期等通知。
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">Webhook URL</label>
+                    <Input
+                      placeholder="https://oapi.dingtalk.com/robot/send?access_token=xxx"
+                      value={dtWebhookUrl}
+                      onChange={(e) => setDtWebhookUrl(e.target.value)}
+                      className="h-10"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">加签密钥（可选）</label>
+                    <div className="relative">
+                      <Input
+                        type={dtShowWebhookSecret ? 'text' : 'password'}
+                        placeholder="SECxxxxxxxx"
+                        value={dtWebhookSecret}
+                        onChange={(e) => setDtWebhookSecret(e.target.value)}
+                        className="h-10 pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setDtShowWebhookSecret(!dtShowWebhookSecret)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600"
+                      >
+                        {dtShowWebhookSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      disabled={dtTesting || !dtWebhookUrl}
+                      onClick={async () => {
+                        setDtTesting(true);
+                        setDtMessage(null);
+                        try {
+                          await api.sendDingTalkNotify({
+                            webhookUrl: dtWebhookUrl,
+                            secret: dtWebhookSecret || undefined,
+                            msgType: 'markdown',
+                            title: '法务工作台测试通知',
+                            text: '## 法务工作台通知测试\n\n这是一条测试消息，如果您收到此消息，说明钉钉通知配置正确。\n\n> 发送时间：' + new Date().toLocaleString('zh-CN'),
+                          });
+                          setDtMessage({ type: 'success', text: '测试消息发送成功！请检查钉钉群是否收到通知。' });
+                        } catch (err) {
+                          setDtMessage({ type: 'error', text: `发送失败：${err instanceof Error ? err.message : '未知错误'}` });
+                        }
+                        setDtTesting(false);
+                      }}
+                    >
+                      {dtTesting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
+                      发送测试消息
+                    </Button>
+                  </div>
+                  <div className="p-3 bg-amber-50 rounded-lg">
+                    <p className="text-xs text-amber-700 font-medium mb-1">配置说明：</p>
+                    <ol className="text-xs text-amber-600 space-y-1 list-decimal list-inside">
+                      <li>在钉钉群中点击「群设置 → 智能群助手 → 添加机器人」</li>
+                      <li>选择「自定义」机器人，设置安全方式（推荐「加签」）</li>
+                      <li>复制 Webhook 地址和加签密钥填入上方</li>
+                    </ol>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Save Button */}
+              <div className="flex justify-end">
+                <Button
+                  disabled={dtSaving}
+                  onClick={async () => {
+                    setDtSaving(true);
+                    setDtMessage(null);
+                    try {
+                      await api.saveDingTalkSettings({
+                        loginEnabled: dtLoginEnabled,
+                        clientId: dtClientId,
+                        clientSecret: dtClientSecret,
+                        notifyEnabled: dtNotifyEnabled,
+                        webhookUrl: dtWebhookUrl,
+                        webhookSecret: dtWebhookSecret,
+                      });
+                      setDtMessage({ type: 'success', text: '钉钉配置已保存' });
+                    } catch (err) {
+                      setDtMessage({ type: 'error', text: `保存失败：${err instanceof Error ? err.message : '未知错误'}` });
+                    }
+                    setDtSaving(false);
+                  }}
+                >
+                  {dtSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                  保存配置
+                </Button>
+              </div>
+            </div>
           )}
 
           {/* Data Management Tab */}

@@ -15,6 +15,7 @@ export const profiles = pgTable(
     email: varchar("email", { length: 255 }).notNull(),
     full_name: varchar("full_name", { length: 128 }).notNull(),
     avatar_url: text("avatar_url"),
+    dingtalk_user_id: varchar("dingtalk_user_id", { length: 100 }),
     role: varchar("role", { length: 20 }).notNull().default("member"), // member | admin
     is_active: boolean("is_active").notNull().default(true),
     created_at: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

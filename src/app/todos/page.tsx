@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Slider } from '@/components/ui/slider';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Loader2, Pencil, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Loader2, Pencil, Trash2, ChevronDown, ChevronUp, Send } from 'lucide-react';
 
 interface Task {
   id: string;
@@ -54,6 +54,9 @@ export default function TodosPage() {
   const [filter, setFilter] = useState<'all' | 'mine'>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [quadrantOpen, setQuadrantOpen] = useState(true);
+  const [dtNotifyEnabled, setDtNotifyEnabled] = useState(false);
+  const [dtSending, setDtSending] = useState(false);
+  const [dtNotifyMsg, setDtNotifyMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const [form, setForm] = useState({
     title: '', task_type: 'temporary', status: 'pending',
@@ -82,6 +85,74 @@ export default function TodosPage() {
   }, [api, filter, typeFilter]);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  // Check DingTalk notification config
+  useEffect(() => {
+    api.getDingTalkNotifyConfig().then(res => {
+      if (res.data) setDtNotifyEnabled(res.data.enabled);
+    }).catch(() => {});
+  }, [api]);
+
+  const sendDingTalkReminder = async () => {
+    setDtSending(true);
+    setDtNotifyMsg(null);
+    try {
+      const pendingTasks = tasks.filter(t => t.status === 'pending' || t.status === 'in_progress');
+      const overdueTasks = pendingTasks.filter(t => isOverdue(t));
+      const todayTasks = pendingTasks.filter(t => {
+        if (!t.due_date) return false;
+        const due = new Date(t.due_date);
+        const today = new Date();
+        return due.toDateString() === today.toDateString();
+      });
+
+      let markdownText = `## 法务工作台 - 任务提醒\n\n`;
+      markdownText += `**发送时间：** ${new Date().toLocaleString('zh-CN')}\n\n`;
+
+      if (overdueTasks.length > 0) {
+        markdownText += `### 逾期任务 (${overdueTasks.length})\n`;
+        overdueTasks.forEach(t => {
+          const days = overdueDays(t);
+          markdownText += `- **${t.title}** (逾期${days}天, 负责人: ${t.owner?.full_name || '未分配'})\n`;
+        });
+        markdownText += '\n';
+      }
+
+      if (todayTasks.length > 0) {
+        markdownText += `### 今日到期 (${todayTasks.length})\n`;
+        todayTasks.forEach(t => {
+          markdownText += `- **${t.title}** (${t.due_time || '18:00'}, 负责人: ${t.owner?.full_name || '未分配'})\n`;
+        });
+        markdownText += '\n';
+      }
+
+      if (pendingTasks.length > 0) {
+        markdownText += `### 待处理任务 (${pendingTasks.length})\n`;
+        pendingTasks.slice(0, 10).forEach(t => {
+          const statusLabel = t.status === 'pending' ? '待处理' : '进行中';
+          markdownText += `- [${statusLabel}] ${t.title}\n`;
+        });
+        if (pendingTasks.length > 10) {
+          markdownText += `- ... 还有 ${pendingTasks.length - 10} 个任务\n`;
+        }
+      }
+
+      if (pendingTasks.length === 0) {
+        markdownText += `> 当前没有待处理的任务，继续保持！\n`;
+      }
+
+      await api.sendDingTalkNotify({
+        msgType: 'markdown',
+        title: '法务工作台任务提醒',
+        text: markdownText,
+      });
+      setDtNotifyMsg({ type: 'success', text: '钉钉提醒已发送！' });
+      setTimeout(() => setDtNotifyMsg(null), 3000);
+    } catch (err) {
+      setDtNotifyMsg({ type: 'error', text: `发送失败：${err instanceof Error ? err.message : '未知错误'}` });
+    }
+    setDtSending(false);
+  };
 
   const openCreate = () => {
     setEditingTask(null);
@@ -234,8 +305,21 @@ export default function TodosPage() {
           <Button onClick={openCreate} className="bg-blue-600 hover:bg-blue-700">
             <Plus className="h-4 w-4 mr-1" /> 新建任务
           </Button>
+          {dtNotifyEnabled && (
+            <Button variant="outline" onClick={sendDingTalkReminder} disabled={dtSending} className="gap-1">
+              {dtSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              钉钉提醒
+            </Button>
+          )}
         </div>
       </div>
+
+      {/* DingTalk notification message */}
+      {dtNotifyMsg && (
+        <div className={`p-3 rounded-lg text-sm ${dtNotifyMsg.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
+          {dtNotifyMsg.text}
+        </div>
+      )}
 
       {/* Four Quadrants - Eisenhower Matrix */}
       <Card>

@@ -5,10 +5,14 @@ import { getSupabaseClient, getSupabaseCredentials, getSupabaseServiceRoleKey } 
 // DingTalk redirects here with ?authCode=xxx&state=xxx
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const authCode = searchParams.get('authCode');
+  const authCode = searchParams.get('authCode') || searchParams.get('code');
   const state = searchParams.get('state');
 
+  console.log('[DingTalk Callback] URL:', request.url);
+  console.log('[DingTalk Callback] authCode:', authCode ? 'present' : 'missing');
+
   if (!authCode) {
+    console.log('[DingTalk Callback] No authCode, redirecting to login');
     return NextResponse.redirect(new URL('/login?error=dingtalk_no_code', request.url));
   }
 
@@ -47,14 +51,16 @@ export async function GET(request: NextRequest) {
 
     if (!tokenRes.ok) {
       const errData = await tokenRes.json().catch(() => ({}));
-      console.error('DingTalk token error:', errData);
+      console.error('[DingTalk Callback] Token exchange failed:', JSON.stringify(errData));
       return NextResponse.redirect(new URL('/login?error=dingtalk_token_failed', request.url));
     }
 
     const tokenData = await tokenRes.json();
+    console.log('[DingTalk Callback] Token response keys:', Object.keys(tokenData));
     const userAccessToken = tokenData.accessToken;
 
     if (!userAccessToken) {
+      console.log('[DingTalk Callback] No accessToken in response');
       return NextResponse.redirect(new URL('/login?error=dingtalk_no_token', request.url));
     }
 
@@ -67,11 +73,12 @@ export async function GET(request: NextRequest) {
 
     if (!userRes.ok) {
       const errData = await userRes.json().catch(() => ({}));
-      console.error('DingTalk user info error:', errData);
+      console.error('[DingTalk Callback] User info failed:', JSON.stringify(errData));
       return NextResponse.redirect(new URL('/login?error=dingtalk_user_info_failed', request.url));
     }
 
     const dtUser = await userRes.json();
+    console.log('[DingTalk Callback] User info:', JSON.stringify({ nick: dtUser.nick, email: dtUser.email, unionId: dtUser.unionId }));
     // dtUser contains: nick, avatarUrl, mobile, openId, unionId, email, stateCode
 
     const dingtalkUserId = dtUser.unionId || dtUser.openId;
@@ -116,6 +123,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (!matchedProfile) {
+      console.log('[DingTalk Callback] No matching profile found for dingtalk_user_id:', dingtalkUserId, 'email:', dtEmail);
       return NextResponse.redirect(new URL('/login?error=dingtalk_no_matching_user', request.url));
     }
 
